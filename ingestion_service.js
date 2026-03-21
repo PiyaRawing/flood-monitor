@@ -1,7 +1,7 @@
 import { MongoClient } from 'mongodb';
 import mqtt from 'mqtt';
 
-const mongoUri = `mongodb://root:examplepassword@mongo:27017/?authSource=admin`;
+const mongoUri = `mongodb://root:examplepassword@mongo:27019/?authSource=admin`;
 const dbName = 'waterSystemDB';
 const client = new MongoClient(mongoUri);
 let db;
