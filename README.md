@@ -132,4 +132,4 @@ Infrastructure: Docker, Docker Compose, Mosquitto MQTT
 
 Hardware: ESP8266, LoRa (Ra-02 / SX1278), PubSubClient
 
-จัดทำขึ้นเพื่อใช้ในการประเมินและติดตามสถานะน้ำท่วม/น้ำรอการระบาย
+จัดทำขึ้นเพื่อใช้ในการประเมินและติดตามสถานะน้ำท่วม
