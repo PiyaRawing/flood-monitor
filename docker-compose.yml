@@ -1,0 +1,40 @@
+services:
+  # ฐานข้อมูล MongoDB
+  mongo:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: examplepassword
+
+  # ตัวรับส่งข้อมูล MQTT
+  mosquitto:
+    image: eclipse-mosquitto:latest
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
+
+  # Web API Service (Server หลัก)
+  web-api:
+    build: .
+    command: npm run start:api
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules  # <--- เพิ่มบรรทัดนี้เพื่อป้องกันการ Mount ทับ node_modules
+    depends_on:
+      - mongo
+
+  # Ingestion Service (รับค่าจาก ESP8266)
+  ingestion:
+    build: .
+    command: npm run start:ingestion
+    volumes:
+      - .:/app
+      - /app/node_modules  # <--- เพิ่มบรรทัดนี้เพื่อป้องกันการทับซ้อนของ Library
+    depends_on:
+      - mongo
+      - mosquitto
