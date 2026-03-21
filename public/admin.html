@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>จัดการจุดวัด - รายงานสถานการณ์น้ำ</title>
+
+    <!--
+    ================================================
+    (สำคัญ) วางโค้ด Google Analytics (gtag.js) ของคุณที่นี่
+    (Paste your Google Analytics (gtag.js) snippet here)
+    ================================================
+    -->
+
+    <!-- (เพิ่ม) 1. ตั้งค่าไอคอนบนแท็บ (Favicon) -->
+    <link rel="icon" type="image/png" href="/icons/flood_main.png" />
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- (เพิ่ม) 1. โหลดไลบรารี Cropper.js -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+
+    <style>
+      /* ใช้ฟอนต์ Sarabun */
+      @import url("https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap");
+
+      body {
+        font-family: "Sarabun", "Inter", sans-serif;
+        /* (แก้ไข) พื้นหลังลายจุด */
+        background-color: #f3f4f6;
+        background-image: radial-gradient(
+          circle,
+          rgba(0, 0, 0, 0.05) 1px,
+          transparent 1px
+        );
+        background-size: 16px 16px;
+      }
+
+      /* สไตล์สำหรับปุ่มเลือกไฟล์ (แก้ไข) */
+      .file-input-button {
+        background-color: #ffffff;
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+        font-weight: 500;
+        color: #374151;
+        cursor: pointer;
+        transition-property: all;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 150ms;
+      }
+
+      .file-input-button:hover {
+        background-color: #f9fafb;
+      }
+
+      /* (เพิ่ม) สไตล์สำหรับ Cropper.js */
+      .cropper-container {
+        max-height: 70vh;
+        width: 100%;
+      }
+
+      .img-container {
+        max-height: 60vh;
+        width: 100%;
+        background-color: #f3f4f6;
+      }
+
+      #image-to-crop {
+        display: block;
+        max-width: 100%;
+      }
+    </style>
+  </head>
+
+  <body class="min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="bg-white shadow-md sticky top-0 z-30">
+      <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center h-16">
+          <div class="flex-shrink-0 flex items-center gap-2">
+            <!-- ไอคอน SVG -->
+            <svg
+              class="h-8 w-8 text-indigo-600"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75"
+              />
+            </svg>
+            <span class="text-xl sm:text-2xl font-bold text-gray-800"
+              >จัดการจุดวัดระดับน้ำ</span
+            >
+          </div>
+          
+          <!-- (แก้ไข) เพิ่มส่วนแสดง User และปุ่ม Logout -->
+          <div class="flex items-center gap-4">
+            <div class="hidden sm:block">
+              <span class="text-sm text-gray-500">
+                ล็อกอินในชื่อ:
+                <strong id="user-email" class="text-gray-800">...</strong>
+              </span>
+            </div>
+            
+            <a
+              href="/"
+              class="hidden sm:flex text-indigo-600 px-3 py-2 rounded-lg text-sm font-medium hover:bg-indigo-50 transition-colors duration-200 items-center gap-1"
+            >
+              <svg
+                class="w-5 h-5"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"
+                />
+              </svg>
+              กลับหน้าหลัก
+            </a>
+
+            <!-- (เพิ่ม) ปุ่ม Logout -->
+            <button
+              id="logout-button"
+              class="flex items-center gap-1 bg-red-100 text-red-700 px-3 py-2 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors duration-200"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+              </svg>
+              ออกจากระบบ
+            </button>
+
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow">
+      <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 space-y-8">
+        
+        <!-- ===== ส่วนที่ 1: จัดการจุดวัด ===== -->
+        <div>
+          <div class="flex justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold text-gray-900">รายการจุดวัดทั้งหมด</h1>
+          </div>
+
+          <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full min-w-[600px] text-left">
+                <thead class="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th
+                      class="px-6 py-4 text-sm font-medium text-gray-600 uppercase tracking-wider"
+                    >
+                      Sensor ID
+                    </th>
+                    <th
+                      class="px-6 py-4 text-sm font-medium text-gray-600 uppercase tracking-wider"
+                    >
+                      ชื่อจุดวัด (Name)
+                    </th>
+                    <th
+                      class="px-6 py-4 text-sm font-medium text-gray-600 uppercase tracking-wider"
+                    >
+                      ชนิด (Type)
+                    </th>
+                    <th
+                      class="px-6 py-4 text-sm font-medium text-gray-600 uppercase tracking-wider"
+                    >
+                      Set 0 (Offset)
+                    </th>
+                    <th
+                      class="px-6 py-4 text-sm font-medium text-gray-600 uppercase tracking-wider text-right"
+                    >
+                      การกระทำ
+                    </th>
+                  </tr>
+                </thead>
+                <tbody id="sensor-table-body" class="divide-y divide-gray-200">
+                  <!-- Loading State -->
+                  <tr id="loading-sensors">
+                    <td colspan="5" class="px-6 py-10 text-center">
+                      <div
+                        class="flex justify-center items-center gap-2 text-gray-500"
+                      >
+                        <svg
+                          class="animate-spin h-5 w-5 text-indigo-600"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            class="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            stroke-width="4"
+                          ></circle>
+                          <path
+                            class="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
+                        </svg>
+                        <span>กำลังโหลดข้อมูลจุดวัด...</span>
+                      </div>
+                    </td>
+                  </tr>
+                  <!-- Sensor rows will be injected here by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== (เพิ่ม) ส่วนที่ 2: จัดการผู้ใช้ ===== -->
+        <div>
+          <h2 class="text-3xl font-bold text-gray-900 mb-6">
+            จัดการผู้ดูแลระบบ
+          </h2>
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- (เพิ่ม) 2.1 ฟอร์มสร้างผู้ใช้ใหม่ -->
+            <div class="lg:col-span-1">
+              <div class="bg-white rounded-xl shadow-lg p-6">
+                <h3 class="text-xl font-bold text-gray-900 mb-4">
+                  สร้างผู้ใช้ใหม่
+                </h3>
+                <form id="add-user-form" class="space-y-4">
+                  <div>
+                    <label
+                      for="new-user-email"
+                      class="block text-sm font-medium text-gray-700 mb-1"
+                      >อีเมล</label
+                    >
+                    <input
+                      type="email"
+                      id="new-user-email"
+                      name="email"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label
+                      for="new-user-password"
+                      class="block text-sm font-medium text-gray-700 mb-1"
+                      >รหัสผ่าน</label
+                    >
+                    <input
+                      type="password"
+                      id="new-user-password"
+                      name="password"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                      required
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    id="add-user-btn"
+                    class="w-full px-6 py-2 bg-indigo-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-indigo-700 transition-colors duration-150"
+                  >
+                    สร้างผู้ใช้
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            <!-- (เพิ่ม) 2.2 ตารางรายชื่อผู้ใช้ -->
+            <div class="lg:col-span-2">
+              <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div class="overflow-x-auto">
+                  <table class="w-full min-w-[400px] text-left">
+                    <thead class="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        <th
+                          class="px-6 py-4 text-sm font-medium text-gray-600 uppercase tracking-wider"
+                        >
+                          อีเมลผู้ใช้
+                        </th>
+                        <th
+                          class="px-6 py-4 text-sm font-medium text-gray-600 uppercase tracking-wider"
+                        >
+                          วันที่สร้าง
+                        </th>
+                        <th
+                          class="px-6 py-4 text-sm font-medium text-gray-600 uppercase tracking-wider text-right"
+                        >
+                          การกระทำ
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody
+                      id="user-table-body"
+                      class="divide-y divide-gray-200"
+                    >
+                      <tr id="loading-users">
+                        <td colspan="3" class="px-6 py-10 text-center">
+                          <div
+                            class="flex justify-center items-center gap-2 text-gray-500"
+                          >
+                            <svg
+                              class="animate-spin h-5 w-5 text-indigo-600"
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                            >
+                              <circle
+                                class="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                stroke-width="4"
+                              ></circle>
+                              <path
+                                class="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                              ></path>
+                            </svg>
+                            <span>กำลังโหลด...</span>
+                          </div>
+                        </td>
+                      </tr>
+                      <!-- User rows will be injected here -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-[#40826D] text-gray-200 mt-12 py-8">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <p class="text-white">ระบบติดตามน้ำรอการระบาย</p>
+
+        <!-- (เพิ่ม) Links -->
+        <div class="mt-4 flex justify-center gap-4 text-sm">
+            <a href="/about.html" class="text-gray-300 hover:text-white transition-colors">เกี่ยวกับเรา</a>
+            <span class="text-gray-500">|</span>
+            <a href="/about.html#privacy" class="text-gray-300 hover:text-white transition-colors">นโยบายความเป็นส่วนตัว</a>
+        </div>
+
+        <p class="text-sm text-gray-300 mt-4">จัดทำขึ้นเพื่อติดตามน้ำรอการระบาย และมีความคลาดเคลื่อนอยู่บ้าง</p>
+      </div>
+    </footer>
+
+    <!-- ===== (แก้ไข) 1. Edit Modal (Modal แก้ไขหลัก) ===== -->
+    <div
+      id="edit-modal"
+      class="modal fixed inset-0 z-50 overflow-y-auto bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 hidden"
+      aria-labelledby="modal-title"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        class="modal-content bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden"
+      >
+        <!-- Modal Header -->
+        <div
+          class="flex justify-between items-center p-5 border-b border-gray-200"
+        >
+          <h3 class="text-xl font-bold text-gray-900" id="modal-title">
+            แก้ไขจุดวัดระดับน้ำ
+          </h3>
+          <button
+            id="close-modal-btn"
+            class="text-gray-400 hover:text-gray-600 transition-colors duration-150 rounded-full p-1"
+          >
+            <svg
+              class="w-6 h-6"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="2"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
+
+        <!-- (สำคัญ) <form> อยู่ข้างใน และ Modal-body ต้องเลื่อนได้ -->
+        <div class="modal-body p-6 overflow-y-auto">
+          <form id="edit-form" class="space-y-6">
+            <!-- Sensor ID (Read-only) -->
+            <div>
+              <label
+                for="modal-sensorId"
+                class="block text-sm font-medium text-gray-700 mb-1"
+                >Sensor ID</label
+              >
+              <input
+                type="text"
+                id="modal-sensorId"
+                name="sensorId"
+                readonly
+                class="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-500 cursor-not-allowed"
+              />
+            </div>
+
+            <!-- ชื่อจุดวัด และ พิกัด -->
+            <div class="space-y-6">
+              <div>
+                <label
+                  for="modal-name"
+                  class="block text-sm font-medium text-gray-700 mb-1"
+                  >ชื่อจุดวัด (Name)</label
+                >
+                <input
+                  type="text"
+                  id="modal-name"
+                  name="name"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                  placeholder="เช่น หมู่บ้านพรส่างนิเวศน์ ซ.34"
+                />
+              </div>
+              <div>
+                <label
+                  for="modal-location"
+                  class="block text-sm font-medium text-gray-700 mb-1"
+                  >พิกัด (Lat, Lng)</label
+                >
+                <input
+                  type="text"
+                  id="modal-location"
+                  name="location"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                  placeholder="เช่น 13.6541, 100.6782"
+                />
+              </div>
+              <div>
+                <label
+                  for="modal-type"
+                  class="block text-sm font-medium text-gray-700 mb-1"
+                  >ชนิด (Type)</label
+                >
+                <select
+                  id="modal-type"
+                  name="type"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+                >
+                  <option value="ถนน">ถนน</option>
+                  <option value="คลอง">คลอง</option>
+                  <option value="แม่น้ำ">แม่น้ำ</option>
+                  <option value="ท่อระบายน้ำ">ท่อระบายน้ำ</option>
+                  <option value="พื้นที่ลุ่มต่ำ">พื้นที่ลุ่มต่ำ</option>
+                  <option value="N/A">N/A (ไม่ระบุ)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- (เพิ่ม) 2. ส่วนอัปโหลดรูป (แก้ไข) -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1"
+                >เลือกไฟล์รูปภาพ (16:9)</label
+              >
+              <div class="flex items-center gap-4">
+                <input
+                  type="file"
+                  id="imageFile"
+                  name="imageFile"
+                  class="hidden"
+                  accept="image/png, image/jpeg"
+                />
+                <label for="imageFile" class="file-input-button"
+                  >เลือกไฟล์...</label
+                >
+                <span
+                  id="file-name-display"
+                  class="text-sm text-gray-500 truncate"
+                  >ยังไม่ได้เลือกไฟล์</span
+                >
+              </div>
+
+              <!-- (เพิ่ม) ตัวแสดงภาพตัวอย่างที่ Crop แล้ว -->
+              <div
+                id="image-preview-container"
+                class="mt-4 hidden relative w-48"
+              >
+                <p class="text-sm font-medium text-gray-700 mb-1">
+                  ภาพตัวอย่าง (16:9)
+                </p>
+                <img
+                  id="image-preview"
+                  src=""
+                  alt="Image Preview"
+                  class="rounded-lg shadow-sm border border-gray-200"
+                />
+                <button
+                  type="button"
+                  id="remove-image-btn"
+                  class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600"
+                >
+                  <svg
+                    class="w-4 h-4"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke-width="2"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              <!-- (ซ่อนไว้) ส่ง URL รูปเดิมไปด้วย -->
+              <input
+                type="hidden"
+                id="modal-existingImageUrl"
+                name="existingImageUrl"
+              />
+            </div>
+
+            <!-- ตั้งค่าเกณฑ์ -->
+            <div class="pt-4 border-t border-gray-200 space-y-6">
+              <div>
+                <label
+                  for="modal-offset"
+                  class="block text-sm font-medium text-gray-700 mb-1"
+                  >Set 0 (Offset) - หน่วยเป็น ซม.</label
+                >
+                <input
+                  type="number"
+                  step="0.1"
+                  id="modal-offset"
+                  name="calibrationOffset"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                  placeholder="0.0"
+                />
+
+                <!-- (เพิ่ม) แสดงค่า RawValue ล่าสุด -->
+                <p id="latest-raw-value" class="text-sm text-gray-600 mt-2">
+                  ค่าดิบ (Raw) ล่าสุด:
+                  <span class="font-bold text-indigo-600">กำลังโหลด...</span>
+                </p>
+
+                <!-- (แก้ไข) คำอธิบาย Offset (ตรรกะกลับด้าน) -->
+                <p class="text-xs text-red-500 mt-1">
+                  (สำคัญ) ค่านี้คือ "ระยะจากเซ็นเซอร์ถึงพื้น (หรือจุดอ้างอิง 0
+                  ซม.)"
+                </p>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1"
+                  >ตั้งค่าเกณฑ์ (หน่วยเป็น เมตร)</label
+                >
+                <div class="flex gap-4">
+                  <div class="flex-1">
+                    <label
+                      for="modal-watch"
+                      class="block text-xs font-medium text-yellow-600"
+                      >เฝ้าระวัง (Watch)</label
+                    >
+                    <input
+                      type="number"
+                      step="0.1"
+                      id="modal-watch"
+                      name="thresholdWatch"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-yellow-500 focus:border-yellow-500"
+                      placeholder="0.4"
+                    />
+                  </div>
+                  <div class="flex-1">
+                    <label
+                      for="modal-critical"
+                      class="block text-xs font-medium text-red-600"
+                      >วิกฤต (Critical)</label
+                    >
+                    <input
+                      type="number"
+                      step="0.1"
+                      id="modal-critical"
+                      name="thresholdCritical"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500"
+                      placeholder="0.8"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <!-- Modal Footer -->
+        <div
+          class="flex justify-between items-center p-5 border-t border-gray-200 bg-gray-50"
+        >
+          <!-- (เพิ่ม) ปุ่มลบ -->
+          <button
+            type="button"
+            id="delete-sensor-btn"
+            class="text-sm font-medium text-red-600 hover:text-red-800 transition-colors duration-150"
+          >
+            ลบอุปกรณ์นี้
+          </button>
+          <div class="flex gap-3">
+            <button
+              id="cancel-modal-btn"
+              type="button"
+              class="px-6 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors duration-150"
+            >
+              ยกเลิก
+            </button>
+            <!-- (สำคัญ) แก้ไขปุ่มบันทึก -->
+            <button
+              id="save-modal-btn"
+              type="submit"
+              form="edit-form"
+              class="px-6 py-2 bg-indigo-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-indigo-700 transition-colors duration-150"
+            >
+              บันทึกข้อมูล
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- (เพิ่ม) 3. Crop Modal (Modal ที่ 2 สำหรับ Crop) -->
+    <div
+      id="crop-modal"
+      class="modal fixed inset-0 z-[60] overflow-y-auto bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 hidden"
+      aria-labelledby="crop-modal-title"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        class="modal-content bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden"
+      >
+        <!-- Header -->
+        <div
+          class="flex justify-between items-center p-5 border-b border-gray-200"
+        >
+          <h3 class="text-xl font-bold text-gray-900" id="crop-modal-title">
+            ตัดภาพ (16:9)
+          </h3>
+          <button
+            id="close-crop-modal-btn"
+            class="text-gray-400 hover:text-gray-600 transition-colors duration-150 rounded-full p-1"
+          >
+            <svg
+              class="w-6 h-6"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="2"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
+        <!-- Body -->
+        <div class="modal-body p-6 overflow-y-auto">
+          <div class="img-container">
+            <img id="image-to-crop" src="" />
+          </div>
+        </div>
+        <!-- Footer -->
+        <div
+          class="flex justify-end items-center p-5 border-t border-gray-200 bg-gray-50"
+        >
+          <button
+            id="confirm-crop-btn"
+            type="button"
+            class="px-6 py-2 bg-indigo-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-indigo-700 transition-colors duration-150"
+          >
+            ยืนยันการตัดภาพ
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal ยืนยันการลบ (เซ็นเซอร์) -->
+    <div
+      id="delete-confirm-modal"
+      class="modal fixed inset-0 z-[60] overflow-y-auto bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 hidden"
+      aria-labelledby="delete-modal-title"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div class="modal-content bg-white rounded-xl shadow-xl w-full max-w-md">
+        <div class="p-6">
+          <div class="flex items-start gap-4">
+            <div
+              class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0"
+            >
+              <svg
+                class="h-6 w-6 text-red-600"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
+                />
+              </svg>
+            </div>
+            <div class="mt-0 flex-1">
+              <h3
+                class="text-lg font-bold text-gray-900"
+                id="delete-modal-title"
+              >
+                ยืนยันการลบอุปกรณ์
+              </h3>
+              <p class="text-sm text-gray-500 mt-2">
+                คุณแน่ใจหรือไม่ว่าต้องการลบ
+                <strong id="delete-sensor-name" class="text-gray-900"></strong>?
+                ข้อมูลประวัติ (Readings)
+                และรูปภาพทั้งหมดของอุปกรณ์นี้จะถูกลบอย่างถาวร
+              </p>
+            </div>
+          </div>
+        </div>
+        <div
+          class="bg-gray-50 px-6 py-4 flex flex-row-reverse gap-3 rounded-b-xl"
+        >
+          <button
+            id="confirm-delete-btn"
+            type="button"
+            class="px-4 py-2 bg-red-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-red-700"
+          >
+            ลบ
+          </button>
+          <button
+            id="cancel-delete-btn"
+            type="button"
+            class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            ยกเลิก
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- (เพิ่ม) Modal ยืนยันการลบ (ผู้ใช้) -->
+    <div
+      id="delete-user-confirm-modal"
+      class="modal fixed inset-0 z-[60] overflow-y-auto bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 hidden"
+      aria-labelledby="delete-user-modal-title"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div class="modal-content bg-white rounded-xl shadow-xl w-full max-w-md">
+        <div class="p-6">
+          <div class="flex items-start gap-4">
+            <div
+              class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0"
+            >
+              <svg
+                class="h-6 w-6 text-red-600"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
+                />
+              </svg>
+            </div>
+            <div class="mt-0 flex-1">
+              <h3
+                class="text-lg font-bold text-gray-900"
+                id="delete-user-modal-title"
+              >
+                ยืนยันการลบผู้ใช้
+              </h3>
+              <p class="text-sm text-gray-500 mt-2">
+                คุณแน่ใจหรือไม่ว่าต้องการลบผู้ใช้
+                <strong id="delete-user-email" class="text-gray-900"></strong>?
+                การกระทำนี้ไม่สามารถย้อนกลับได้
+              </p>
+            </div>
+          </div>
+        </div>
+        <div
+          class="bg-gray-50 px-6 py-4 flex flex-row-reverse gap-3 rounded-b-xl"
+        >
+          <button
+            id="confirm-delete-user-btn"
+            type="button"
+            class="px-4 py-2 bg-red-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-red-700"
+          >
+            ลบ
+          </button>
+          <button
+            id="cancel-delete-user-btn"
+            type="button"
+            class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            ยกเลิก
+          </button>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- Toast Notification -->
+    <div
+      id="toast"
+      class="fixed bottom-10 right-10 z-[70] px-6 py-4 rounded-lg shadow-lg text-white transition-all duration-300 translate-y-16 opacity-0 hidden"
+      role="alert"
+    >
+      <span id="toast-message"></span>
+    </div>
+
+    <script>
+      // --- Global Variables ---
+      let sensorsCache = [];
+      let sensorToDeleteId = null;
+      let cropperInstance = null;
+      let croppedImageBlob = null;
+      let loggedInUserEmail = null; // (เพิ่ม) เก็บอีเมลคนที่ล็อกอิน
+      let userToDeleteId = null; // (เพิ่ม) เก็บ ID user ที่จะลบ
+
+      // --- Element Refs ---
+      const tableBody = document.getElementById("sensor-table-body");
+      const editModal = document.getElementById("edit-modal");
+      const modalTitle = document.getElementById("modal-title");
+      const editForm = document.getElementById("edit-form");
+      const closeModalBtn = document.getElementById("close-modal-btn");
+      const cancelModalBtn = document.getElementById("cancel-modal-btn");
+      const saveModalBtn = document.getElementById("save-modal-btn");
+      const deleteSensorBtn = document.getElementById("delete-sensor-btn");
+      const deleteConfirmModal = document.getElementById(
+        "delete-confirm-modal"
+      );
+      const deleteSensorName = document.getElementById("delete-sensor-name");
+      const confirmDeleteBtn = document.getElementById("confirm-delete-btn");
+      const cancelDeleteBtn = document.getElementById("cancel-delete-btn");
+      const toast = document.getElementById("toast");
+      const toastMessage = document.getElementById("toast-message");
+
+      // ... (Refs สำหรับ Cropper)
+      const imageFileInput = document.getElementById("imageFile");
+      const fileNameDisplay = document.getElementById("file-name-display");
+      const imagePreviewContainer = document.getElementById(
+        "image-preview-container"
+      );
+      const imagePreview = document.getElementById("image-preview");
+      const removeImageBtn = document.getElementById("remove-image-btn");
+      const cropModal = document.getElementById("crop-modal");
+      const imageToCrop = document.getElementById("image-to-crop");
+      const closeCropModalBtn = document.getElementById("close-crop-modal-btn");
+      const confirmCropBtn = document.getElementById("confirm-crop-btn");
+
+      // ... (Refs สำหรับ Logout)
+      const userEmailEl = document.getElementById('user-email');
+      const logoutButton = document.getElementById('logout-button');
+
+      // (เพิ่ม) --- Element Refs (User Management) ---
+      const addUserForm = document.getElementById('add-user-form');
+      const addUserBtn = document.getElementById('add-user-btn');
+      const userTableBody = document.getElementById('user-table-body');
+      const deleteUserConfirmModal = document.getElementById('delete-user-confirm-modal');
+      const deleteUserEmail = document.getElementById('delete-user-email');
+      const confirmDeleteUserBtn = document.getElementById('confirm-delete-user-btn');
+      const cancelDeleteUserBtn = document.getElementById('cancel-delete-user-btn');
+
+
+      // --- Initial Load ---
+      document.addEventListener("DOMContentLoaded", () => {
+        checkLoginStatus(); // 1. เช็ค Login ก่อน
+        fetchSensorConfigs(); // 2. โหลดข้อมูลตารางเซ็นเซอร์
+        fetchUsers(); // (เพิ่ม) 3. โหลดข้อมูลตารางผู้ใช้
+      });
+
+      // --- Login/Logout Logic ---
+      async function checkLoginStatus() {
+        try {
+          const response = await fetch('/api/me');
+          if (!response.ok) {
+            if (response.status === 401) window.location.href = '/login.html';
+            return;
+          }
+          const user = await response.json();
+          if (user.email) {
+            userEmailEl.innerText = user.email;
+            loggedInUserEmail = user.email; // (เพิ่ม) เก็บอีเมลไว้
+          }
+        } catch (error) {
+          console.error('Error checking login status:', error);
+          window.location.href = '/login.html';
+        }
+      }
+
+      logoutButton.addEventListener('click', async () => {
+        try {
+          const response = await fetch('/api/logout', { method: 'POST' });
+          if (response.ok) {
+            showToast('ออกจากระบบสำเร็จ', false);
+            setTimeout(() => { window.location.href = '/login.html'; }, 1000);
+          } else { throw new Error('Logout failed'); }
+        } catch (error) {
+          console.error('Error logging out:', error);
+          showToast('เกิดข้อผิดพลาดในการออกจากระบบ', true);
+        }
+      });
+
+      // --- Fetch Data (Sensors) ---
+      async function fetchSensorConfigs() {
+        tableBody.innerHTML = `
+        <tr id="loading-sensors">
+          <td colspan="5" class="px-6 py-10 text-center">
+            <div class="flex justify-center items-center gap-2 text-gray-500">
+              <svg class="animate-spin h-5 w-5 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+              <span>กำลังโหลดข้อมูล...</span>
+            </div>
+          </td>
+        </tr>`;
+        try {
+          const response = await fetch("/api/sensors/config");
+          if (!response.ok) {
+            if (response.status === 401) {
+              showToast('Session หมดอายุ, กรุณาล็อกอินใหม่', true);
+              setTimeout(() => { window.location.href = '/login.html'; }, 2000);
+            }
+            throw new Error("Network response was not ok");
+          }
+          sensorsCache = await response.json();
+          renderTable(sensorsCache);
+        } catch (error) {
+          console.error("Error fetching sensor configs:", error);
+          if (String(error).includes('401')) return;
+          tableBody.innerHTML = `<tr><td colspan="5" class="px-6 py-10 text-center text-red-500">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>`;
+        }
+      }
+
+      // --- Render Table (Sensors) ---
+      function renderTable(sensors) {
+        const loadingRow = document.getElementById("loading-sensors");
+        if (loadingRow) loadingRow.remove();
+
+        if (sensors.length === 0) {
+          tableBody.innerHTML = `<tr><td colspan="5" class="px-6 py-10 text-center text-gray-500">ไม่พบจุดวัดที่ติดตั้ง (เมื่อ ESP ส่งข้อมูลมา, อุปกรณ์จะปรากฏที่นี่อัตโนมัติ)</td></tr>`;
+          return;
+        }
+
+        tableBody.innerHTML = "";
+        sensors.forEach((sensor) => {
+          const row = document.createElement("tr");
+          row.className = "hover:bg-gray-50";
+          row.innerHTML = `
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${sensor.sensorId}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${sensor.name}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${sensor.type}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${sensor.calibrationOffset} ซม.</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
+            <button data-id="${sensor.sensorId}" class="edit-btn text-indigo-600 hover:text-indigo-900">
+              แก้ไข
+            </button>
+          </td>
+        `;
+          tableBody.appendChild(row);
+        });
+      }
+
+      // --- Edit Modal Logic (Sensors) ---
+      function openEditModal(sensor) {
+        modalTitle.innerText = `แก้ไขจุดวัด: ${sensor.sensorId}`;
+        editForm.reset(); 
+        resetImageInput();
+
+        document.getElementById("modal-sensorId").value = sensor.sensorId;
+        document.getElementById("modal-name").value = sensor.name || "";
+        document.getElementById("modal-location").value = sensor.location || "";
+        document.getElementById("modal-type").value = sensor.type || "N/A";
+        document.getElementById("modal-offset").value = sensor.calibrationOffset || 0;
+        document.getElementById("modal-watch").value = sensor.thresholds ? sensor.thresholds.watch : 0.4;
+        document.getElementById("modal-critical").value = sensor.thresholds ? sensor.thresholds.critical : 0.8;
+
+        const rawValueEl = document.getElementById("latest-raw-value").querySelector("span");
+        if (sensor.lastRawValue !== null && sensor.lastRawValue !== undefined) {
+          rawValueEl.innerText = `${sensor.lastRawValue} (ซม.)`;
+          rawValueEl.className = "font-bold text-indigo-600";
+        } else {
+          rawValueEl.innerText = "ยังไม่มีข้อมูล";
+          rawValueEl.className = "font-bold text-gray-500";
+        }
+
+        const existingUrl = sensor.imageUrl || "";
+        document.getElementById("modal-existingImageUrl").value = existingUrl;
+        if (existingUrl && existingUrl.startsWith("http") === false) {
+          imagePreview.src = existingUrl;
+          imagePreviewContainer.style.display = "block";
+          fileNameDisplay.innerText = "ใช้รูปเดิม (16:9)";
+        }
+
+        sensorToDeleteId = sensor.sensorId;
+        deleteSensorBtn.style.display = "block";
+        editModal.style.display = "flex";
+      }
+
+      function closeModal() {
+        editModal.style.display = "none";
+      }
+
+      // --- Crop Modal Logic ---
+      function openCropModal(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          imageToCrop.src = e.target.result;
+          cropModal.style.display = "flex";
+          if (cropperInstance) cropperInstance.destroy();
+          cropperInstance = new Cropper(imageToCrop, {
+            aspectRatio: 16 / 9,
+            viewMode: 1,
+            dragMode: "move",
+            autoCropArea: 0.8,
+            background: false,
+          });
+        };
+        reader.readAsDataURL(file);
+      }
+
+      function closeCropModal() {
+        cropModal.style.display = "none";
+        if (cropperInstance) {
+          cropperInstance.destroy();
+          cropperInstance = null;
+        }
+      }
+
+      function resetImageInput() {
+        croppedImageBlob = null;
+        imageFileInput.value = null;
+        fileNameDisplay.innerText = "ยังไม่ได้เลือกไฟล์";
+        imagePreview.src = "";
+        imagePreviewContainer.style.display = "none";
+        document.getElementById("modal-existingImageUrl").value = "";
+      }
+
+      // --- Event Listeners (Sensors) ---
+      tableBody.addEventListener("click", (e) => {
+        if (e.target.classList.contains("edit-btn")) {
+          const id = e.target.getAttribute("data-id");
+          const sensor = sensorsCache.find((s) => s.sensorId === id);
+          if (sensor) openEditModal(sensor);
+        }
+      });
+
+      closeModalBtn.addEventListener("click", closeModal);
+      cancelModalBtn.addEventListener("click", closeModal);
+
+      editForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        saveModalBtn.disabled = true;
+        saveModalBtn.innerText = "กำลังบันทึก...";
+
+        try {
+          const formData = new FormData();
+          formData.append("sensorId", document.getElementById("modal-sensorId").value);
+          formData.append("name", document.getElementById("modal-name").value);
+          formData.append("location", document.getElementById("modal-location").value);
+          formData.append("type", document.getElementById("modal-type").value);
+          formData.append("calibrationOffset", document.getElementById("modal-offset").value);
+          formData.append("thresholdWatch", document.getElementById("modal-watch").value);
+          formData.append("thresholdCritical", document.getElementById("modal-critical").value);
+          formData.append("existingImageUrl", document.getElementById("modal-existingImageUrl").value);
+
+          if (croppedImageBlob) {
+            const fileName = `cropped-${document.getElementById("modal-sensorId").value}.jpg`;
+            formData.append("imageFile", croppedImageBlob, fileName);
+          }
+
+          const response = await fetch("/api/sensors/config", {
+            method: "POST",
+            body: formData,
+          });
+
+          if (!response.ok) {
+            if (response.status === 401) {
+              showToast('Session หมดอายุ, กรุณาล็อกอินใหม่', true);
+              setTimeout(() => { window.location.href = '/login.html'; }, 2000);
+              return;
+            }
+            throw new Error("Server error");
+          }
+
+          const result = await response.json();
+          showToast(result.message, false);
+          closeModal();
+          await fetchSensorConfigs();
+        } catch (error) {
+          console.error("Error saving data:", error);
+          showToast("เกิดข้อผิดพลาดในการบันทึก", true);
+        } finally {
+          saveModalBtn.disabled = false;
+          saveModalBtn.innerText = "บันทึกข้อมูล";
+        }
+      });
+
+      // ... (Event Listeners สำหรับ Cropper)
+      imageFileInput.addEventListener("change", (e) => {
+        const files = e.target.files;
+        if (files && files.length > 0) {
+          const file = files[0];
+          fileNameDisplay.innerText = file.name;
+          openCropModal(file);
+        }
+      });
+
+      closeCropModalBtn.addEventListener("click", closeCropModal);
+
+      confirmCropBtn.addEventListener("click", () => {
+        if (!cropperInstance) return;
+        confirmCropBtn.disabled = true;
+        confirmCropBtn.innerText = "กำลังตัด...";
+
+        const canvas = cropperInstance.getCroppedCanvas({
+          width: 1280,
+          height: 720,
+          imageSmoothingQuality: "high",
+        });
+
+        canvas.toBlob((blob) => {
+          croppedImageBlob = blob;
+          const previewUrl = URL.createObjectURL(blob);
+          imagePreview.src = previewUrl;
+          imagePreviewContainer.style.display = "block";
+          fileNameDisplay.innerText = "ใช้ภาพที่ Crop แล้ว";
+          closeCropModal();
+          confirmCropBtn.disabled = false;
+          confirmCropBtn.innerText = "ยืนยันการตัดภาพ";
+        }, "image/jpeg", 0.9);
+      });
+
+      removeImageBtn.addEventListener("click", () => {
+        resetImageInput();
+        const sensorId = document.getElementById("modal-sensorId").value;
+        const sensor = sensorsCache.find((s) => s.sensorId === sensorId);
+        if (sensor && sensor.imageUrl) {
+          document.getElementById("modal-existingImageUrl").value = sensor.imageUrl;
+          if (sensor.imageUrl.startsWith("http") === false) {
+            imagePreview.src = sensor.imageUrl;
+            imagePreviewContainer.style.display = "block";
+            fileNameDisplay.innerText = "ใช้รูปเดิม (16:9)";
+          }
+        }
+      });
+
+      // --- Delete Logic (Sensors) ---
+      deleteSensorBtn.addEventListener("click", () => {
+        const sensor = sensorsCache.find((s) => s.sensorId === sensorToDeleteId);
+        if (sensor) {
+          deleteSensorName.innerText = `${sensor.name} (ID: ${sensor.sensorId})`;
+          deleteConfirmModal.style.display = "flex";
+        }
+      });
+
+      cancelDeleteBtn.addEventListener("click", () => {
+        deleteConfirmModal.style.display = "none";
+      });
+
+      confirmDeleteBtn.addEventListener("click", async () => {
+        if (!sensorToDeleteId) return;
+        confirmDeleteBtn.disabled = true;
+        confirmDeleteBtn.innerText = "กำลังลบ...";
+
+        try {
+          const response = await fetch(`/api/sensor/${sensorToDeleteId}`, {
+            method: "DELETE",
+          });
+          const result = await response.json();
+          if (!response.ok) {
+            if (response.status === 401) {
+              showToast('Session หมดอายุ, กรุณาล็อกอินใหม่', true);
+              setTimeout(() => { window.location.href = '/login.html'; }, 2000);
+              return;
+            }
+            throw new Error(result.message || "Server error");
+          }
+          showToast(result.message, false);
+          deleteConfirmModal.style.display = "none";
+          closeModal();
+          await fetchSensorConfigs();
+        } catch (error) {
+          console.error("Error deleting sensor:", error);
+          showToast(error.message || "เกิดข้อผิดพลาดในการลบ", true);
+        } finally {
+          confirmDeleteBtn.disabled = false;
+          confirmDeleteBtn.innerText = "ลบ";
+          sensorToDeleteId = null;
+        }
+      });
+
+      // (เพิ่ม) --- User Management Logic ---
+
+      // (เพิ่ม) โหลดรายชื่อผู้ใช้
+      async function fetchUsers() {
+        try {
+          const response = await fetch('/api/users');
+          if (!response.ok) {
+            if (response.status === 401) return; // checkLoginStatus จัดการแล้ว
+            throw new Error('Failed to fetch users');
+          }
+          const users = await response.json();
+          renderUserTable(users);
+        } catch (error) {
+          console.error("Error fetching users:", error);
+          userTableBody.innerHTML = `<tr><td colspan="3" class="px-6 py-10 text-center text-red-500">เกิดข้อผิดพลาดในการโหลดข้อมูลผู้ใช้</td></tr>`;
+        }
+      }
+
+      // (เพิ่ม) วาดตารางผู้ใช้
+      function renderUserTable(users) {
+        const loadingRow = document.getElementById("loading-users");
+        if (loadingRow) loadingRow.remove();
+        
+        userTableBody.innerHTML = ""; // ล้างตาราง
+        
+        if (users.length === 0) {
+          userTableBody.innerHTML = `<tr><td colspan="3" class="px-6 py-10 text-center text-gray-500">ไม่พบข้อมูลผู้ใช้</td></tr>`;
+          return;
+        }
+
+        users.forEach(user => {
+          const createdAt = new Date(user.createdAt).toLocaleString('th-TH', {
+            year: 'numeric', month: 'short', day: 'numeric'
+          });
+          
+          // (สำคัญ) ตรวจสอบว่าใช่ user ที่ล็อกอินอยู่หรือไม่
+          const isCurrentUser = (user.email === loggedInUserEmail);
+
+          const row = document.createElement("tr");
+          row.className = "hover:bg-gray-50";
+          row.innerHTML = `
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${user.email} ${isCurrentUser ? '<span class="text-xs text-indigo-600">(คุณ)</span>' : ''}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${createdAt}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
+              ${isCurrentUser 
+                ? '<span class="text-gray-400 cursor-not-allowed">ลบ</span>' 
+                : `<button data-id="${user._id}" data-email="${user.email}" class="delete-user-btn text-red-600 hover:text-red-900">ลบ</button>`
+              }
+            </td>
+          `;
+          userTableBody.appendChild(row);
+        });
+      }
+
+      // (เพิ่ม) Event Listener สำหรับฟอร์มสร้างผู้ใช้
+      addUserForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        addUserBtn.disabled = true;
+        addUserBtn.innerText = 'กำลังสร้าง...';
+
+        const email = document.getElementById('new-user-email').value;
+        const password = document.getElementById('new-user-password').value;
+
+        try {
+          const response = await fetch('/api/users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+          });
+          
+          const result = await response.json();
+
+          if (!response.ok) {
+            if (response.status === 401) {
+              showToast('Session หมดอายุ, กรุณาล็อกอินใหม่', true);
+              setTimeout(() => { window.location.href = '/login.html'; }, 2000);
+              return;
+            }
+            throw new Error(result.message || 'Server error');
+          }
+
+          showToast(result.message, false);
+          addUserForm.reset();
+          await fetchUsers(); // โหลดตารางผู้ใช้ใหม่
+
+        } catch (error) {
+          console.error("Error creating user:", error);
+          showToast(error.message || 'เกิดข้อผิดพลาดในการสร้างผู้ใช้', true);
+        } finally {
+          addUserBtn.disabled = false;
+          addUserBtn.innerText = 'สร้างผู้ใช้';
+        }
+      });
+
+      // (เพิ่ม) Event Listener สำหรับตารางผู้ใช้ (ปุ่มลบ)
+      userTableBody.addEventListener('click', (e) => {
+        if (e.target.classList.contains('delete-user-btn')) {
+          userToDeleteId = e.target.getAttribute('data-id');
+          const userEmail = e.target.getAttribute('data-email');
+          deleteUserEmail.innerText = userEmail;
+          deleteUserConfirmModal.style.display = 'flex';
+        }
+      });
+
+      // (เพิ่ม) Event Listener สำหรับ Modal ลบผู้ใช้
+      cancelDeleteUserBtn.addEventListener('click', () => {
+        deleteUserConfirmModal.style.display = 'none';
+        userToDeleteId = null;
+      });
+
+      confirmDeleteUserBtn.addEventListener('click', async () => {
+        if (!userToDeleteId) return;
+        
+        confirmDeleteUserBtn.disabled = true;
+        confirmDeleteUserBtn.innerText = 'กำลังลบ...';
+
+        try {
+          const response = await fetch(`/api/users/${userToDeleteId}`, {
+            method: 'DELETE'
+          });
+          
+          const result = await response.json();
+          
+          if (!response.ok) {
+            if (response.status === 401) {
+              showToast('Session หมดอายุ, กรุณาล็อกอินใหม่', true);
+              setTimeout(() => { window.location.href = '/login.html'; }, 2000);
+              return;
+            }
+            throw new Error(result.message || 'Server error');
+          }
+          
+          showToast(result.message, false);
+          deleteUserConfirmModal.style.display = 'none';
+          await fetchUsers(); // โหลดตารางผู้ใช้ใหม่
+
+        } catch (error) {
+          console.error("Error deleting user:", error);
+          showToast(error.message || 'เกิดข้อผิดพลาดในการลบผู้ใช้', true);
+        } finally {
+          confirmDeleteUserBtn.disabled = false;
+          confirmDeleteUserBtn.innerText = 'ลบ';
+          userToDeleteId = null;
+        }
+      });
+
+
+      // --- Toast Notification Logic ---
+      let toastTimer;
+      function showToast(message, isError = false) {
+        clearTimeout(toastTimer); // ล้างเวลาก่อนหน้า
+        toastMessage.innerText = message;
+
+        // สลับสี
+        toast.className = toast.className.replace(
+          /bg-\w+-\d+/,
+          isError ? "bg-red-500" : "bg-green-500"
+        );
+
+        toast.style.display = "block";
+        setTimeout(() => {
+          toast.style.opacity = "1";
+          toast.style.transform = "translateY(0)";
+        }, 10); // หน่วงเวลาเล็กน้อย
+
+        // ซ่อน
+        toastTimer = setTimeout(() => {
+          toast.style.opacity = "0";
+          toast.style.transform = "translateY(4rem)";
+          setTimeout(() => {
+            toast.style.display = "none";
+          }, 300);
+        }, 3000); // 3 วินาที
+      }
+    </script>
+  </body>
+</html>

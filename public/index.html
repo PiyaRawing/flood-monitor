@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบติดตามระดับน้ำท่วม</title>
+    
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=G-DQ0P13LM5R"
+    ></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+
+      gtag("config", "G-DQ0P13LM5R");
+    </script>
+
+    <!-- (เพิ่ม) 1. ตั้งค่าไอคอนบนแท็บ (Favicon) -->
+    <link rel="icon" type="image/png" href="/icons/flood_main.png">
+
+    <!-- โหลด Tailwind CSS ผ่าน CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- โหลด Leaflet CSS (สำหรับแผนที่) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- โหลด Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <style>
+        /* ใช้ฟอนต์ Inter (หรือฟอนต์ไทยที่เครื่องมี) เพื่อความสวยงาม */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Sarabun', 'Inter', sans-serif;
+            /* พื้นหลังลายจุด */
+            background-color: #f7fafc;
+            background-image: radial-gradient(#d2d6dc 0.5px, transparent 0.5px);
+            background-size: 10px 10px;
+        }
+        
+        /* กำหนดความสูงของแผนที่ */
+        #map {
+            height: 350px;
+            width: 100%;
+            border-radius: 0.75rem; /* rounded-xl */
+            z-index: 1;
+        }
+
+        /* สไตล์สำหรับหมุดแผนที่แบบ Custom (วงกลม + ตัวเลข) */
+        .custom-map-marker {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+            font-weight: bold;
+            color: white;
+            font-size: 0.9rem;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+
+        /* (เพิ่ม) สไตล์สำหรับ Pop-up */
+        .leaflet-popup-content-wrapper {
+            border-radius: 0.75rem; /* 12px */
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .leaflet-popup-content {
+            font-family: 'Sarabun', 'Inter', sans-serif;
+            margin: 12px 16px !important;
+            padding: 0;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo/Title -->
+                <div class="flex-shrink-0 flex items-center gap-2 min-w-0">
+                    <img src="/icons/flood_main.png" alt="โลโก้ระบบติดตามระดับน้ำท่วม" class="h-10 w-10">
+                    <span class="text-xl sm:text-2xl font-bold text-gray-800 truncate">ระบบรายงานสถานการณ์น้ำ</span>
+                </div>
+                
+                <!-- (แก้ไข) ปุ่ม Desktop -->
+                <div class="hidden md:flex items-center gap-6 flex-shrink-0 ml-4">
+                    <a href="/about.html" class="text-gray-600 hover:text-indigo-600 text-sm font-medium transition-colors duration-200 whitespace-nowrap">
+                        เกี่ยวกับเรา
+                    </a>
+                    
+                    <a href="/admin.html" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors duration-200 whitespace-nowrap">
+                        สำหรับผู้ดูแลระบบ
+                    </a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow">
+        <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+            
+            <!-- Map Section -->
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">แผนที่จุดวัด</h2>
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-12 p-1">
+                <div id="map" class="rounded-lg"></div>
+                <div id="location-status" class="px-4 py-2 text-sm text-gray-500 bg-gray-50 border-t">
+                    กำลังขอพิกัดตำแหน่งของคุณ...
+                </div>
+            </div>
+
+            <h1 class="text-3xl font-bold text-gray-900 mb-6">
+                ภาพรวมจุดวัดระดับน้ำ
+            </h1>
+            <p class="text-lg text-gray-600 mb-8" id="location-status-main">
+                ข้อมูลอัพเดทจากจุดเฝ้าระวังต่างๆ แบบเรียลไทม์
+            </p>
+
+            <!-- Loading State -->
+            <div id="loading-sensors" class="text-center py-10">
+                <div class="flex justify-center items-center gap-2 text-gray-500">
+                    <svg class="animate-spin h-5 w-5 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>กำลังโหลดข้อมูลเซ็นเซอร์...</span>
+                </div>
+            </div>
+
+            <!-- Grid of Sensor Cards -->
+            <div id="sensor-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Cards will be inserted here by JavaScript -->
+            </div> 
+
+        </div>
+    </main>
+
+    <!-- Mobile Admin Button (FAB) -->
+    <a href="/admin.html" class="md:hidden fixed bottom-6 right-6 bg-indigo-600 text-white p-4 rounded-full shadow-lg hover:bg-indigo-700 transition-colors duration-200 z-50 flex items-center justify-center">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 011.45.12l.773.774c.41.41.469 1.043.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.56.94 1.11v1.09c0 .55-.397 1.02-.94 1.11l-.893.149c-.425.07-.765.383-.93.78-.165.398-.143.854.107 1.204l.527.738c.35.407.29 1.04-.12 1.45l-.774.773a1.125 1.125 0 01-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.397.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 01-.12-1.45l.527-.737c.25-.35.273-.806-.108-1.204-.165-.397-.505-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.11v-1.09c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.107-1.204l-.527-.738a1.125 1.125 0 01.12-1.45l.773-.773a1.125 1.125 0 011.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+    </a>
+
+    <!-- Footer -->
+    <footer class="bg-[#40826D] text-gray-200 mt-12 py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p class="text-white">ระบบติดตามน้ำรอการระบาย</p>
+            
+            <!-- (เพิ่ม) Links -->
+            <div class="mt-4 flex justify-center gap-4 text-sm">
+                <a href="/about.html" class="text-gray-300 hover:text-white transition-colors">เกี่ยวกับเรา</a>
+                <span class="text-gray-500">|</span>
+                <a href="/about.html#privacy" class="text-gray-300 hover:text-white transition-colors">นโยบายความเป็นส่วนตัว</a>
+            </div>
+
+            <p class="text-sm text-gray-400 mt-4">
+               จัดทำขึ้นเพื่อติดตามน้ำรอการระบาย และมีความคลาดเคลื่อนอยู่บ้าง
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        // --- Global Variables ---
+        let map;
+        let markers = {};
+        let userLocation = null;
+        const sensorGrid = document.getElementById('sensor-grid');
+        const locationStatusEl = document.getElementById('location-status');
+        const locationStatusMainEl = document.getElementById('location-status-main'); // (เพิ่ม) ตัวแปรสำหรับ <p> ตัวหลัก
+        
+        const colors = {
+            'ปกติ': { color: 'green', bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-200', dot: '#22c55e' },
+            'เฝ้าระวัง': { color: 'yellow', bg: 'bg-yellow-50', text: 'text-yellow-700', border: 'border-yellow-200', dot: '#eab308' },
+            'วิกฤต': { color: 'red', bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', dot: '#ef4444' },
+            'Offline': { color: 'gray', bg: 'bg-gray-50', text: 'text-gray-700', border: 'border-gray-200', dot: '#6b7280' }
+        };
+
+        // (เพิ่ม) ฟังก์ชันตัดข้อความ
+        function truncateText(text, maxLength = 30) {
+            if (!text || text.length <= maxLength) {
+                return text;
+            }
+            return text.substring(0, maxLength) + '...';
+        }
+
+        function formatTimeAgo(isoDateString) {
+            if (!isoDateString) return '';
+            const date = new Date(isoDateString);
+            const now = new Date();
+            const seconds = Math.floor((now - date) / 1000);
+
+            let interval = seconds / 31536000;
+            if (interval > 1) return `(${Math.floor(interval)} ปีที่แล้ว)`;
+            interval = seconds / 2592000;
+            if (interval > 1) return `(${Math.floor(interval)} เดือนที่แล้ว)`;
+            interval = seconds / 86400;
+            if (interval > 1) return `(${Math.floor(interval)} วันที่แล้ว)`;
+            interval = seconds / 3600;
+            if (interval > 1) return `(${Math.floor(interval)} ชม. ที่แล้ว)`;
+            interval = seconds / 60;
+            if (interval > 1) return `(${Math.floor(interval)} นาทีที่แล้ว)`;
+            interval = seconds;
+            return `(${Math.floor(interval)} วินาทีที่แล้ว)`;
+        }
+
+        function initMap() {
+            map = L.map('map').setView([13.6541, 100.6782], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+        }
+
+        function updateMapMarker(sensor) {
+            // (ป้องกัน Error ถ้า location ไม่มี ,)
+            if (!sensor.location || !sensor.location.includes(',')) return; 
+            
+            const lat = parseFloat(sensor.location.split(',')[0]);
+            const lng = parseFloat(sensor.location.split(',')[1]);
+            
+            // (ป้องกัน Error ถ้าแปลงค่าไม่ได้)
+            if (isNaN(lat) || isNaN(lng)) return; 
+
+            // (แก้ไข) ตรวจสอบ currentLevel ก่อน .toFixed()
+            const levelText = (sensor.currentLevel !== undefined && sensor.currentLevel !== null) 
+                ? sensor.currentLevel.toFixed(1) // (ใช้ 1 ตำแหน่งสำหรับหมุด)
+                : '-';
+
+            const config = colors[sensor.status] || colors['Offline'];
+
+            const markerHtml = `<div style="background-color: ${config.dot};" class="custom-map-marker">${levelText}</div>`;
+
+            const customIcon = L.divIcon({
+                className: '',
+                html: markerHtml,
+                iconSize: [40, 40],
+                iconAnchor: [20, 20], // (แก้ไข) Anchor กึ่งกลางวงกลม
+                popupAnchor: [0, -20] // (แก้ไข) Popup เหนือวงกลม
+            });
+            
+            // ===============================================
+            // (แก้ไข) แทนที่ popupContent ด้วยโค้ดที่คุณส่งมา
+            // ===============================================
+            const popupContent = `
+                <div class="font-sans" style="font-family: 'Sarabun', sans-serif;">
+                    <h3 class="font-bold text-base mb-1">${sensor.name}</h3>
+                    <p class="text-sm text-gray-700">สถานะ: <span class="font-bold" style="color:${config.dot}">${sensor.status}</span></p>
+                    <p class="text-sm text-gray-700">ระดับน้ำ: <span class="font-bold">${
+                      // (ปรับปรุง) เพิ่มการตรวจสอบ null
+                      sensor.status === 'Offline' || sensor.currentLevel === null 
+                        ? '-' 
+                        : sensor.currentLevel.toFixed(2) + ' ม.'
+                    }</span></p>
+                    <p class="text-xs text-gray-500 mt-2">ID: ${sensor.sensorId}</p>
+                    <a href="/detail.html?id=${sensor.sensorId}" class="text-indigo-600 text-sm font-medium mt-2 block hover:underline">ดูรายละเอียด &rarr;</a>
+                </div>
+            `;
+
+            if (markers[sensor.sensorId]) {
+                markers[sensor.sensorId].setLatLng([lat, lng])
+                                        .setIcon(customIcon)
+                                        .bindPopup(popupContent);
+            } else {
+                const marker = L.marker([lat, lng], { icon: customIcon }).addTo(map)
+                    .bindPopup(popupContent);
+                markers[sensor.sensorId] = marker;
+            }
+        }
+        
+        // (เพิ่ม) ปักหมุดตำแหน่งผู้ใช้
+        function addUserMarker(lat, lng) {
+            if (!map) return;
+            const userIcon = L.divIcon({
+                className: '',
+                html: `<div class="relative flex items-center justify-center w-5 h-5">
+                           <span class="absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75 animate-ping"></span>
+                           <span class="relative inline-flex rounded-full h-3 w-3 bg-blue-500 border-2 border-white shadow-md"></span>
+                       </div>`,
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+            });
+            L.marker([lat, lng], { icon: userIcon, zIndexOffset: 1000 })
+                .addTo(map)
+                .bindPopup("ตำแหน่งของคุณ")
+                .openPopup();
+            map.setView([lat, lng], 14); // ย้ายแผนที่ไปหาผู้ใช้
+        }
+
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // รัศมีโลก (km)
+            const dLat = deg2rad(lat2 - lat1);
+            const dLon = deg2rad(lon2 - lon1);
+            const a =
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            const d = R * c;
+            return d;
+        }
+
+        function deg2rad(deg) {
+            return deg * (Math.PI / 180);
+        }
+
+        function createSensorCard(sensor) {
+            const config = colors[sensor.status] || colors['Offline'];
+            
+            const relativeTime = sensor.lastUpdateISO ? formatTimeAgo(sensor.lastUpdateISO) : '';
+            
+            const updateTime = sensor.lastUpdateISO ? new Date(sensor.lastUpdateISO).toLocaleString('th-TH', {
+                day: 'numeric', month: 'numeric', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            }) : 'ไม่มีข้อมูล';
+
+            let distanceHtml = '';
+            if (userLocation && sensor.location && sensor.location.includes(',')) {
+                try {
+                    const sensorLat = parseFloat(sensor.location.split(',')[0]);
+                    const sensorLng = parseFloat(sensor.location.split(',')[1]);
+                    if (!isNaN(sensorLat) && !isNaN(sensorLng)) {
+                        const dist = calculateDistance(userLocation.lat, userLocation.lng, sensorLat, sensorLng);
+                        distanceHtml = `
+                        <div class="flex items-center gap-2 text-blue-600 font-medium">
+                            <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" /></svg>
+                            <span>ห่างจากคุณ: ${dist.toFixed(1)} กม.</span>
+                        </div>
+                        `;
+                    }
+                } catch(e) { console.warn("Could not calculate distance for sensor:", sensor.sensorId); }
+            }
+
+            const levelText = (sensor.currentLevel !== undefined && sensor.currentLevel !== null) 
+                ? `${sensor.currentLevel.toFixed(2)} <span class="text-lg font-normal">เมตร</span>` 
+                : '- <span class="text-lg font-normal">เมตร</span>';
+
+            // (แก้ไข) Layout ของการ์ด ให้ Footer อยู่ด้านล่างเสมอ (Flexbox fix)
+            // 1. เพิ่ม h-full ที่ <a>
+            // 2. เพิ่ม h-full flex flex-col ที่ main div
+            // 3. เพิ่ม flex-grow ที่ content div
+            return `
+            <a href="/detail.html?id=${sensor.sensorId}" class="block h-full">
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden transition-transform duration-300 hover:scale-[1.02] h-full flex flex-col">
+                    <!-- ส่วนรูปภาพ -->
+                    <div class="relative h-48">
+                        <img src="${sensor.imageUrl || 'https://placehold.co/600x400/e2e8f0/cbd5e1?text=No+Image'}" 
+                             alt="${sensor.name}" class="w-full h-full object-cover">
+                        <div class="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-semibold text-gray-600 shadow-sm">
+                            ${sensor.sensorId}
+                        </div>
+                    </div>
+
+                    <!-- ส่วนข้อมูลรายละเอียด (ใช้ flex-grow เพื่อดัน Footer ลงล่าง) -->
+                    <div class="p-6 flex-grow">
+                        <div class="mb-4">
+                            <h2 class="text-xl font-bold text-gray-900 line-clamp-2">
+                                <!-- (เพิ่ม) เรียกใช้ truncateText -->
+                                ${truncateText(sensor.name || '(ยังไม่ได้ตั้งชื่อ)', 30)}
+                            </h2>
+                        </div>
+                        <div class="space-y-3 text-gray-700">
+                            <div class="flex items-center gap-2">
+                                <svg class="w-5 h-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" /></svg>
+                                <span>พิกัด: ${sensor.location || 'N/A'}</span>
+                            </div>
+                            ${distanceHtml}
+                            <div class="flex items-center gap-2">
+                                <svg class="w-5 h-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-3h6" /></svg>
+                                <span>${sensor.type || 'N/A'}</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <svg class="w-5 h-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                <span class="text-sm text-gray-500">${updateTime} <span class="text-indigo-600 font-medium">${relativeTime}</span></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- ส่วนแสดงระดับน้ำและสถานะ (Footer) -->
+                    <div class="${config.bg} border-t ${config.border} px-6 py-4 grid grid-cols-2 gap-4 items-center mt-auto">
+                        <div>
+                            <p class="text-sm font-medium ${config.text}">ระดับน้ำ</p>
+                            <p class="text-3xl font-bold ${config.text}">${levelText}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm font-medium ${config.text}">สถานะ</p>
+                            <div class="flex items-center justify-end gap-2">
+                                <span class="h-4 w-4 rounded-full ring-2 ring-white ${sensor.status === 'วิกฤต' ? 'animate-pulse' : ''}" style="background-color: ${config.dot}"></span>
+                                <p class="text-xl font-bold ${config.text}">${sensor.status}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </a>
+            `;
+        }
+
+        async function fetchSensorData() {
+            try {
+                const response = await fetch('/api/sensors');
+                if (!response.ok) throw new Error('Network response was not ok');
+                let sensors = await response.json();
+
+                // เรียงลำดับตามระยะทาง (ถ้ามีพิกัดผู้ใช้)
+                if (userLocation) {
+                    sensors = sensors.map(sensor => {
+                        if (sensor.location && sensor.location.includes(',')) {
+                            try {
+                                const lat = parseFloat(sensor.location.split(',')[0]);
+                                const lng = parseFloat(sensor.location.split(',')[1]);
+                                if (!isNaN(lat) && !isNaN(lng)) {
+                                    const dist = calculateDistance(userLocation.lat, userLocation.lng, lat, lng);
+                                    return { ...sensor, distance: dist };
+                                }
+                            } catch(e) { /* fallback */ }
+                        }
+                        return { ...sensor, distance: Infinity }; // ไม่มีพิกัด ให้ไปอยู่ท้ายๆ
+                    });
+                    sensors.sort((a, b) => a.distance - b.distance);
+                }
+
+                document.getElementById('loading-sensors').style.display = 'none';
+                sensorGrid.innerHTML = '';
+
+                if (sensors.length === 0) {
+                    sensorGrid.innerHTML = '<div class="col-span-1 md:col-span-2 lg:col-span-3 text-center text-gray-500">ยังไม่มีข้อมูลเซ็นเซอร์ (รอข้อมูลจาก ESP)</div>';
+                    return;
+                }
+                
+                let firstValidLocation = null;
+                sensors.forEach(sensor => {
+                    const cardHtml = createSensorCard(sensor);
+                    // (แก้ไข) ใช้ .insertAdjacentHTML แทน .appendChild
+                    sensorGrid.insertAdjacentHTML('beforeend', cardHtml);
+                    
+                    if (sensor.location && sensor.location.includes(',')) {
+                        updateMapMarker(sensor);
+                        if (!firstValidLocation) {
+                            try {
+                                firstValidLocation = sensor.location.split(',').map(Number);
+                            } catch(e) { /* ignore */ }
+                        }
+                    }
+                });
+
+                // ย้ายแผนที่ไปหาอุปกรณ์ที่ใกล้ที่สุด (ถ้ายังไม่ได้ย้ายไปหา user)
+                if (firstValidLocation && !userLocation) {
+                    map.setView(firstValidLocation, 13);
+                }
+                
+                // (เพิ่ม) 💡 FIX: บังคับให้แผนที่วาดตัวเองใหม่
+                if (map) {
+                    map.invalidateSize();
+                }
+
+
+            } catch (error) {
+                console.error('Error fetching sensor data:', error);
+                document.getElementById('loading-sensors').innerHTML = `<p class="text-red-500">เกิดข้อผิดพลาดในการโหลดข้อมูล: ${error.message}</p>`;
+            }
+        }
+
+        function requestUserLocation() {
+            if ("geolocation" in navigator) {
+                // (แก้ไข) อัปเดตทั้ง 2 ตำแหน่ง
+                locationStatusEl.innerText = "กำลังขอพิกัดตำแหน่งของคุณเพื่อเรียงลำดับ...";
+                locationStatusMainEl.innerText = "กำลังขอพิกัดตำแหน่งของคุณ...";
+
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        // Success
+                        userLocation = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+                        
+                        locationStatusEl.innerText = "เรียงลำดับจุดวัดจากตำแหน่งที่ใกล้คุณที่สุด";
+                        locationStatusMainEl.innerText = "ข้อมูลอัพเดท (เรียงจากตำแหน่งที่ใกล้คุณที่สุด)";
+                        locationStatusEl.classList.add("text-green-600");
+
+                        addUserMarker(userLocation.lat, userLocation.lng); // ปักหมุดผู้ใช้และย้ายแผนที่
+
+                        fetchSensorData(); // (สำคัญ) เรียกโหลดข้อมูลใหม่
+                    },
+                    (error) => {
+                        // Error/Deny
+                        console.warn("User denied geolocation:", error.message);
+                        locationStatusEl.innerText = "ไม่สามารถระบุตำแหน่งของคุณได้ (แสดงข้อมูลตามปกติ)";
+                        locationStatusMainEl.innerText = "ข้อมูลอัพเดทจากจุดเฝ้าระวังต่างๆ แบบเรียลไทม์";
+                        fetchSensorData(); // (สำคัญ) เรียกโหลดข้อมูล (แบบไม่เรียง)
+                    }
+                );
+            } else {
+                // Not supported
+                locationStatusEl.innerText = "เบราว์เซอร์ของคุณไม่รองรับการระบุตำแหน่ง";
+                locationStatusMainEl.innerText = "ข้อมูลอัพเดทจากจุดเฝ้าระวังต่างๆ แบบเรียลไทม์";
+                fetchSensorData(); // (สำคัญ) เรียกโหลดข้อมูล (แบบไม่เรียง)
+            }
+        }
+
+        // (เพิ่ม) ฟังก์ชันหลัก (Main) ที่ขาดหายไป
+        document.addEventListener('DOMContentLoaded', () => {
+            initMap();
+            // เริ่มขอพิกัด (ซึ่งจะไปเรียก fetchSensorData อีกที)
+            requestUserLocation();
+
+            // Auto Refresh ทุก 1 นาที (จะเริ่มทำงานหลังโหลดครั้งแรกแล้ว)
+            setInterval(fetchSensorData, 60000);
+        });
+
+    </script>
+</body>
+</html>
