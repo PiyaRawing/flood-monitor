@@ -10,7 +10,7 @@ import MongoStore from 'connect-mongo';
 import bcrypt from 'bcryptjs';
 
 // --- Database Config ---
-const mongoUri = `mongodb://root:examplepassword@mongo:27019/?authSource=admin`;
+const mongoUri = `mongodb://root:examplepassword@mongo:27018/?authSource=admin`;
 const dbName = 'waterSystemDB';
 const client = new MongoClient(mongoUri);
 let db;
