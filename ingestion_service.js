@@ -15,18 +15,9 @@ function connectMQTT() {
 
   mqttClient.on('connect', () => {
     console.log(`[Ingestion Service] Connected to MQTT Broker`);
-    
-    // Subscribe ทุกข้อมูลที่ Gateway ส่งมา
-    const topics = [
-      'sensors/+/distance',
-      'sensors/+/battery',
-      'sensors/+/rssi'
-    ];
-    
+    const topics = ['sensors/+/distance', 'sensors/+/battery', 'sensors/+/rssi'];
     mqttClient.subscribe(topics, (err) => {
-      if (!err) {
-        console.log(`[Ingestion Service] Subscribed to all sensor topics.`);
-      }
+      if (!err) console.log(`[Ingestion Service] Subscribed to all sensor topics.`);
     });
   });
 
@@ -46,7 +37,7 @@ function connectMQTT() {
       let updateDoc = { $set: { lastUpdateISO: timestamp } };
       
       if (dataType === 'distance') {
-        // บันทึกประวัติเฉพาะข้อมูลระยะทาง
+        // บันทึกประวัติข้อมูลระยะทาง
         await db.collection('readings').insertOne({
           sensorId,
           rawValue: value,
@@ -55,8 +46,20 @@ function connectMQTT() {
         updateDoc.$set.lastRawValue = value;
       } else if (dataType === 'battery') {
         updateDoc.$set.batteryV = value;
+        // ย้อนกลับไปอัปเดตค่าแบตเตอรี่ลงในประวัติที่เพิ่งสร้างภายใน 5 วินาทีที่ผ่านมา
+        const recentTime = new Date(Date.now() - 5000);
+        await db.collection('readings').updateMany(
+          { sensorId: sensorId, timestamp: { $gte: recentTime } },
+          { $set: { batteryV: value } }
+        );
       } else if (dataType === 'rssi') {
         updateDoc.$set.rssi = value;
+        // ย้อนกลับไปอัปเดตค่า RSSI ลงในประวัติ
+        const recentTime = new Date(Date.now() - 5000);
+        await db.collection('readings').updateMany(
+          { sensorId: sensorId, timestamp: { $gte: recentTime } },
+          { $set: { rssi: value } }
+        );
       }
 
       // อัปเดตหรือสร้างข้อมูลเซ็นเซอร์ใหม่ (Auto-Discovery)
@@ -66,8 +69,7 @@ function connectMQTT() {
           ...updateDoc,
           $setOnInsert: {
             name: `(อุปกรณ์ใหม่: ${sensorId})`,
-            location: "N/A",
-            type: "N/A",
+            location: "N/A", type: "N/A",
             calibrationOffset: 200,
             thresholds: { watch: 0.4, critical: 0.8 },
             imageUrl: `https://placehold.co/600x400/e2e8f0/cbd5e1?text=${sensorId}`
