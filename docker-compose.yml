@@ -2,6 +2,7 @@ services:
   # ฐานข้อมูล MongoDB
   mongo:
     image: mongo:latest
+    restart: unless-stopped
     ports:
       - "27018:27017"
     environment:
@@ -13,6 +14,7 @@ services:
   # ตัวรับส่งข้อมูล MQTT
   mosquitto:
     image: eclipse-mosquitto:latest
+    restart: unless-stopped
     ports:
       - "1883:1883"
     volumes:
@@ -21,6 +23,7 @@ services:
   # Web API Service (Server หลัก)
   web-api:
     build: .
+    restart: unless-stopped
     command: npm run start:api
     ports:
       - "3000:3000"
@@ -33,6 +36,7 @@ services:
   # Ingestion Service (รับค่าจาก ESP8266)
   ingestion:
     build: .
+    restart: unless-stopped
     command: npm run start:ingestion
     volumes:
       - .:/app
