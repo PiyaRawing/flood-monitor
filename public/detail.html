@@ -6,13 +6,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>รายละเอียดจุดวัด - รายงานสถานการณ์น้ำ</title>
   
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-DQ0P13LM5R"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag() { dataLayer.push(arguments); }
-    gtag("js", new Date());
-    gtag("config", "G-DQ0P13LM5R");
-  </script>
+  <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=G-DQ0P13LM5R"
+    ></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+
+      gtag("config", "G-DQ0P13LM5R");
+    </script>
 
   <link rel="icon" type="image/png" href="/icons/flood_main.png" />
   <script src="https://cdn.tailwindcss.com"></script>
@@ -25,13 +31,49 @@
 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap');
-    body { font-family: 'Sarabun', sans-serif; background-color: #f7fafc; background-image: radial-gradient(#d2d6dc 0.5px, transparent 0.5px); background-size: 10px 10px; }
-    .chart-btn { padding: 0.5rem 1rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 500; transition: all 150ms ease; cursor: pointer; }
-    .chart-btn-inactive { color: #374151; background-color: #ffffff; border: 1px solid #d1d5db; }
-    .chart-btn-inactive:hover { background-color: #f3f4f6; }
-    .chart-btn-active { color: #ffffff; background-color: #4f46e5; border: 1px solid #4f46e5; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2); }
-    input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.6; transition: 0.2s; }
-    input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+
+    body {
+      font-family: 'Sarabun', sans-serif;
+      background-color: #f7fafc;
+      background-image: radial-gradient(#d2d6dc 0.5px, transparent 0.5px);
+      background-size: 10px 10px;
+    }
+
+    .chart-btn {
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all 150ms ease;
+      cursor: pointer;
+    }
+
+    .chart-btn-inactive {
+      color: #374151;
+      background-color: #ffffff;
+      border: 1px solid #d1d5db;
+    }
+
+    .chart-btn-inactive:hover {
+      background-color: #f3f4f6;
+    }
+
+    .chart-btn-active {
+      color: #ffffff;
+      background-color: #4f46e5;
+      border: 1px solid #4f46e5;
+      box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
+    }
+    
+    /* สไตล์สำหรับ Date Picker */
+    input[type="date"]::-webkit-calendar-picker-indicator {
+        cursor: pointer;
+        opacity: 0.6;
+        transition: 0.2s;
+    }
+    input[type="date"]::-webkit-calendar-picker-indicator:hover {
+        opacity: 1;
+    }
   </style>
 </head>
 
@@ -42,16 +84,21 @@
     <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between items-center h-16">
         <div class="flex-shrink-0 flex items-center gap-2">
-          <svg class="h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 15.75C15.75 18.5063 13.5063 20.75 10.75 20.75C7.99365 20.75 5.75 18.5063 5.75 15.75C5.75 13.7368 6.746 11.96 8.25 10.96L10.75 3.25L13.25 10.96C14.754 11.96 15.75 13.7368 15.75 15.75Z" />
+          <svg class="h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+            stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M15.75 15.75C15.75 18.5063 13.5063 20.75 10.75 20.75C7.99365 20.75 5.75 18.5063 5.75 15.75C5.75 13.7368 6.746 11.96 8.25 10.96L10.75 3.25L13.25 10.96C14.754 11.96 15.75 13.7368 15.75 15.75Z" />
           </svg>
           <span class="text-xl sm:text-2xl font-bold text-gray-800">รายละเอียดจุดวัด</span>
         </div>
         <div>
-          <a href="/" class="text-indigo-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-50 transition-colors duration-200 flex items-center gap-1">
-            <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <a href="/"
+            class="text-indigo-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-50 transition-colors duration-200 flex items-center gap-1">
+            <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+              stroke-width="1.5" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-            </svg> กลับหน้าหลัก
+            </svg>
+            กลับหน้าหลัก
           </a>
         </div>
       </div>
@@ -64,7 +111,13 @@
       <!-- Loading State -->
       <div id="loading-state" class="text-center py-10">
         <div class="flex justify-center items-center gap-2 text-gray-500">
-          <svg class="animate-spin h-5 w-5 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+          <svg class="animate-spin h-5 w-5 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+            viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+            </path>
+          </svg>
           <span>กำลังโหลดข้อมูล...</span>
         </div>
       </div>
@@ -78,9 +131,10 @@
       <div id="content" class="hidden space-y-8">
 
         <!-- ===== ส่วนที่ 1: ข้อมูลสรุปและรูปภาพ ===== -->
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden p-6 grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div class="md:col-span-1">
-            <img id="sensor-image" src="https://placehold.co/600x400/e2e8f0/cbd5e1?text=Loading..." alt="รูปภาพจุดติดตั้ง" class="w-full h-48 md:h-full object-cover rounded-xl shadow-sm">
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden p-6 grid grid-cols-1 md:grid-cols-5 gap-6">
+          <div class="md:col-span-2">
+            <img id="sensor-image" src="https://placehold.co/600x400/e2e8f0/cbd5e1?text=Loading..."
+              alt="รูปภาพจุดติดตั้ง" class="w-full h-48 md:h-full object-cover rounded-xl shadow-sm">
           </div>
           <div class="md:col-span-2 space-y-3 flex flex-col justify-center">
             <span id="sensor-id" class="inline-block bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full text-xs font-semibold tracking-wide">Loading...</span>
@@ -98,26 +152,38 @@
                 <div class="p-2 bg-gray-50 rounded-lg"><svg class="w-5 h-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
                 <span id="sensor-update-time" class="font-medium">Loading...</span>
               </div>
-              <!-- แบตเตอรี่ -->
+              
+              <!-- เพิ่มข้อมูล แบตเตอรี่ -->
               <div class="flex items-center gap-3">
-                <div class="p-2 bg-gray-50 rounded-lg"><svg class="w-5 h-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 10.5h.375c.621 0 1.125.504 1.125 1.125v2.25c0 .621-.504 1.125-1.125 1.125H21M4.5 10.5h6.75V15H4.5v-4.5zM3.75 18h15A2.25 2.25 0 0021 15.75v-6a2.25 2.25 0 00-2.25-2.25h-15A2.25 2.25 0 001.5 9.75v6A2.25 2.25 0 003.75 18z" /></svg></div>
+                <div class="p-2 bg-gray-50 rounded-lg">
+                  <svg class="w-5 h-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 10.5h.375c.621 0 1.125.504 1.125 1.125v2.25c0 .621-.504 1.125-1.125 1.125H21M4.5 10.5h6.75V15H4.5v-4.5zM3.75 18h15A2.25 2.25 0 0021 15.75v-6a2.25 2.25 0 00-2.25-2.25h-15A2.25 2.25 0 001.5 9.75v6A2.25 2.25 0 003.75 18z" />
+                  </svg>
+                </div>
                 <span class="font-medium">แบตเตอรี่: <span id="sensor-battery" class="text-indigo-600 font-bold">Loading...</span></span>
               </div>
-              <!-- RSSI -->
+
+              <!-- เพิ่มข้อมูล สัญญาณ (RSSI) -->
               <div class="flex items-center gap-3">
-                <div class="p-2 bg-gray-50 rounded-lg"><svg class="w-5 h-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.288 15.038a5.25 5.25 0 017.424 0M5.106 11.856c3.807-3.808 9.98-3.808 13.788 0M1.924 8.674c5.565-5.565 14.587-5.565 20.152 0M12.53 18.22l-.53.53-.53-.53a.75.75 0 011.06 0z" /></svg></div>
+                <div class="p-2 bg-gray-50 rounded-lg">
+                  <svg class="w-5 h-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.288 15.038a5.25 5.25 0 017.424 0M5.106 11.856c3.807-3.808 9.98-3.808 13.788 0M1.924 8.674c5.565-5.565 14.587-5.565 20.152 0M12.53 18.22l-.53.53-.53-.53a.75.75 0 011.06 0z" />
+                  </svg>
+                </div>
                 <span class="font-medium">สัญญาณ (RSSI): <span id="sensor-rssi" class="text-indigo-600 font-bold">Loading...</span></span>
               </div>
             </div>
           </div>
           <div class="md:col-span-1 flex items-center justify-center">
             <div id="sensor-status-box" class="w-full h-full min-h-[150px] p-6 rounded-2xl border flex flex-col justify-center items-center text-center shadow-sm transition-colors duration-300">
-              <p id="sensor-status-label" class="text-sm font-semibold uppercase tracking-wider mb-2">สถานะปัจจุบัน</p>
+              <p id="sensor-status-label" class="text-sm font-semibold uppercase tracking-wider mb-2">ระดับน้ำปัจจุบัน</p>
               <div class="flex items-center justify-center gap-2 mb-2">
                 <span id="sensor-status-dot" class="h-3 w-3 rounded-full animate-pulse"></span>
                 <p id="sensor-status" class="text-2xl font-bold">Loading...</p>
               </div>
-              <p id="sensor-level" class="text-4xl font-black mt-1">-.-- <span class="text-lg font-medium opacity-80">ม.</span></p>
+              <p id="sensor-level" class="text-4xl font-black mt-1">
+                -.-- <span class="text-lg font-medium opacity-80">ม.</span>
+              </p>
             </div>
           </div>
         </div>
@@ -127,17 +193,21 @@
           <div class="p-5 border-b border-gray-100 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-gray-50/50">
             <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
                 <svg class="w-5 h-5 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>
-                สถิติย้อนหลัง
+                สถิติระดับน้ำย้อนหลัง
             </h2>
             
             <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full lg:w-auto">
+              <!-- ปุ่มเลือกช่วงเวลา -->
               <div id="range-buttons" class="flex flex-wrap gap-2">
                 <button data-range="3h" class="chart-btn chart-btn-active shadow-sm">3 ชม.</button>
                 <button data-range="24h" class="chart-btn chart-btn-inactive">24 ชม.</button>
                 <button data-range="7d" class="chart-btn chart-btn-inactive">7 วัน</button>
                 <button data-range="30d" class="chart-btn chart-btn-inactive">30 วัน</button>
               </div>
+              
               <div class="hidden sm:block text-gray-300">|</div>
+              
+              <!-- Date Picker สำหรับเลือกเฉพาะวัน -->
               <div class="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm">
                 <svg class="w-4 h-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>
                 <input type="date" id="specific-date" class="text-sm font-medium text-gray-700 outline-none bg-transparent cursor-pointer">
@@ -146,19 +216,18 @@
           </div>
           
           <div class="p-6 relative">
+            <!-- Loading overlay สำหรับกราฟ -->
             <div id="chart-loading" class="absolute inset-0 bg-white/80 z-10 flex items-center justify-center hidden backdrop-blur-sm">
                 <div class="flex flex-col items-center gap-2 text-indigo-600">
                     <svg class="animate-spin h-8 w-8" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                     <span class="text-sm font-medium">กำลังประมวลผลข้อมูล...</span>
                 </div>
             </div>
-            
-            <!-- กราฟระดับน้ำ -->
-            <div class="h-[400px]">
+            <div class="h-[450px]">
               <canvas id="waterLevelChart"></canvas>
             </div>
-
-            <!-- กราฟแบตเตอรี่ (แทรกเพิ่ม) -->
+            
+            <!-- กราฟแบตเตอรี่ -->
             <div class="mt-6 pt-4 border-t border-gray-100">
               <h3 class="text-sm font-bold text-gray-500 mb-2 flex items-center gap-1.5 uppercase tracking-wider">
                 <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 10.5h.375c.621 0 1.125.504 1.125 1.125v2.25c0 .621-.504 1.125-1.125 1.125H21M4.5 10.5h6.75V15H4.5v-4.5zM3.75 18h15A2.25 2.25 0 0021 15.75v-6a2.25 2.25 0 00-2.25-2.25h-15A2.25 2.25 0 001.5 9.75v6A2.25 2.25 0 003.75 18z" /></svg>
@@ -168,7 +237,6 @@
                 <canvas id="batteryChart"></canvas>
               </div>
             </div>
-
           </div>
         </div>
 
@@ -178,6 +246,7 @@
             <svg class="w-5 h-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" /></svg>
             คำอธิบายเกณฑ์ระดับน้ำ
           </h2>
+          <!-- เพิ่มข้อความอธิบายการวัดระดับน้ำ -->
           <p class="text-sm text-gray-500 mb-4">* วัดระดับน้ำจากระดับลึกสุด ณ จุดติดตั้งเซนเซอร์</p>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="border-l-4 border-green-500 p-4 bg-green-50/50 rounded-r-xl">
@@ -208,10 +277,14 @@
           <span class="text-gray-500">|</span>
           <a href="/about.html#privacy" class="text-gray-300 hover:text-white transition-colors">นโยบายความเป็นส่วนตัว</a>
       </div>
+      <p class="text-xs text-gray-400 mt-4 opacity-75">
+        จัดทำขึ้นเพื่อติดตามน้ำรอการระบาย ข้อมูลอาจมีความคลาดเคลื่อนได้
+      </p>
     </div>
   </footer>
 
   <script>
+    // --- Configuration Colors ---
     const colors = {
       'ปกติ': { color: 'green', bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-200', dot: '#22c55e' },
       'เฝ้าระวัง': { color: 'yellow', bg: 'bg-yellow-50', text: 'text-yellow-700', border: 'border-yellow-200', dot: '#eab308' },
@@ -242,17 +315,25 @@
     const chartLoading = document.getElementById('chart-loading');
 
     let waterLevelChart = null;
-    let batteryChart = null; // ตัวแปรสำหรับกราฟแบตเตอรี่
+    let batteryChart = null;
     let chartSensorId = null;
     let sensorConfigCache = null;
+    let currentFetchType = 'range'; // 'range' or 'date'
+    let currentFetchValue = '3h';   // e.g., '3h' or '2023-10-25'
 
     function updateLiveStatus(status, level, timestampISO) {
       const colorConfig = colors[status] || colors['Offline'];
+      
       document.getElementById('sensor-status-box').className = `w-full h-full min-h-[150px] p-6 rounded-2xl border flex flex-col justify-center items-center text-center shadow-sm transition-colors duration-300 ${colorConfig.bg} ${colorConfig.border}`;
       document.getElementById('sensor-status-label').className = `text-sm font-semibold uppercase tracking-wider mb-2 ${colorConfig.text}`;
       document.getElementById('sensor-status-dot').style.backgroundColor = colorConfig.dot;
       document.getElementById('sensor-status').className = `text-2xl font-bold ${colorConfig.text}`;
-      document.getElementById('sensor-level').innerHTML = (level !== undefined && level !== null) ? `${level.toFixed(2)} <span class="text-lg font-medium opacity-80">ม.</span>` : '-.-- <span class="text-lg font-medium opacity-80">ม.</span>';
+      document.getElementById('sensor-level').className = `text-4xl font-black mt-1 ${colorConfig.text}`;
+
+      document.getElementById('sensor-status').innerText = status;
+      document.getElementById('sensor-level').innerHTML = (level !== undefined && level !== null) 
+          ? `${level.toFixed(2)} <span class="text-lg font-medium opacity-80">ม.</span>`
+          : '-.-- <span class="text-lg font-medium opacity-80">ม.</span>';
       
       const updateTime = new Date(timestampISO).toLocaleString('th-TH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' });
       document.getElementById('sensor-update-time').innerHTML = `${updateTime} น. <span class="ml-1 text-indigo-500 font-semibold bg-indigo-50 px-2 py-0.5 rounded text-xs">${formatTimeAgo(timestampISO) || ''}</span>`;
@@ -270,6 +351,7 @@
         document.getElementById('sensor-type').innerText = sensorConfigCache.type || 'N/A';
         document.getElementById('sensor-image').src = sensorConfigCache.imageUrl || 'https://placehold.co/600x400/e2e8f0/cbd5e1?text=No+Image';
 
+        // เพิ่มโค้ดอัปเดตข้อมูล แบตเตอรี่ และ RSSI
         document.getElementById('sensor-battery').innerText = sensorConfigCache.batteryV !== undefined ? `${sensorConfigCache.batteryV} V` : '- V';
         document.getElementById('sensor-rssi').innerText = sensorConfigCache.rssi !== undefined ? `${sensorConfigCache.rssi} dBm` : '- dBm';
 
@@ -284,32 +366,42 @@
         chartSensorId = sensorConfigCache.sensorId;
         return true;
       } catch (error) {
+        console.error('Error:', error);
         loadingState.style.display = 'none';
         errorState.style.display = 'block';
         return false;
       }
     }
 
-    // ปรับปรุงฟังก์ชันคำนวณกราฟให้ประมวลผลแบตเตอรี่ด้วย
+    // --- ฟังก์ชันสำหรับการประมวลผลข้อมูล (Downsampling) เพื่อให้กราฟลื่นไหล ---
     function processChartData(readings, fetchType, fetchValue, offset) {
         if (!readings || readings.length === 0) return [];
 
+        // กำหนดระยะเวลาเพื่อจับกลุ่มเฉลี่ย (นาที)
         let bucketMinutes = 1; 
-        if (fetchType === 'date' || fetchValue === '24h') bucketMinutes = 15;
-        else if (fetchValue === '7d') bucketMinutes = 60;
-        else if (fetchValue === '30d') bucketMinutes = 240;
+        
+        if (fetchType === 'date' || fetchValue === '24h') {
+            bucketMinutes = 15; // ดูข้อมูล 1 วัน เฉลี่ยทุก 15 นาที
+        } else if (fetchValue === '7d') {
+            bucketMinutes = 60; // ดู 7 วัน เฉลี่ยราย 1 ชม.
+        } else if (fetchValue === '30d') {
+            bucketMinutes = 240; // ดู 30 วัน เฉลี่ยราย 4 ชม.
+        }
 
+        // หากไม่ต้องเฉลี่ย (เช่น 3 ชม. ล่าสุด)
         if (bucketMinutes === 1) {
             return readings.map(r => ({
                 x: new Date(r.timestamp),
-                y: Math.max(0, (offset - r.rawValue) / 100.0),
-                battery: r.batteryV || null // ดึงค่าแบตเตอรี่มาด้วย
+                y: Math.max(0, (offset - r.rawValue) / 100.0), // แปลงเป็นเมตร
+                battery: r.batteryV || null
             }));
         }
 
+        // การจับกลุ่มข้อมูลและหาค่าเฉลี่ย
         const buckets = {};
         readings.forEach(r => {
             const time = new Date(r.timestamp).getTime();
+            // ปัดเศษเวลาลงไปอยู่ใน Bucket (เช่น ตัดเศษให้ลงล็อก 15 นาที)
             const bucketTime = Math.floor(time / (bucketMinutes * 60 * 1000)) * (bucketMinutes * 60 * 1000);
             if (!buckets[bucketTime]) buckets[bucketTime] = { values: [], batteries: [] };
             buckets[bucketTime].values.push(r.rawValue);
@@ -321,7 +413,6 @@
             const avgRaw = data.values.reduce((sum, val) => sum + val, 0) / data.values.length;
             const levelInM = Math.max(0, (offset - avgRaw) / 100.0);
             
-            // หาค่าเฉลี่ยแบตเตอรี่ (ถ้ามีข้อมูล)
             let avgBatt = null;
             if (data.batteries.length > 0) {
                 avgBatt = data.batteries.reduce((sum, val) => sum + val, 0) / data.batteries.length;
@@ -334,6 +425,7 @@
             });
         }
         
+        // เรียงลำดับตามเวลาให้ถูกต้อง
         return aggregatedData.sort((a, b) => a.x - b.x);
     }
 
@@ -341,17 +433,23 @@
       chartLoading.style.display = 'flex';
       try {
         let url = `/api/sensor/readings/${sensorId}`;
-        if (type === 'date') url += `?date=${value}`;
-        else url += `?range=${value}`;
+        if (type === 'date') {
+            url += `?date=${value}`;
+        } else {
+            url += `?range=${value}`;
+        }
 
         const response = await fetch(url);
+        if (!response.ok) throw new Error('Failed to fetch readings');
         const rawReadings = await response.json();
         
         if (!sensorConfigCache) return;
         const offset = sensorConfigCache.calibrationOffset || 0;
         
+        // ส่งไปแปลงและจัดกลุ่มข้อมูล
         const processedData = processChartData(rawReadings, type, value, offset);
         createOrUpdateChart(processedData, type, value);
+
       } catch (error) {
         console.error('Error loading chart data:', error);
       } finally {
@@ -360,20 +458,36 @@
     }
 
     function createOrUpdateChart(dataPoints, type, value) {
+      const ctx = document.getElementById('waterLevelChart').getContext('2d');
       const thresholds = sensorConfigCache?.thresholds || { watch: 0.4, critical: 0.8 };
+
+      // ตั้งค่ารูปแบบแกน X ตามช่วงเวลา
       let timeUnit = 'hour';
       let tooltipFormat = 'd MMM yyyy HH:mm น.';
       let displayFormat = 'HH:mm';
 
       if (value === '7d' || value === '30d') {
-          timeUnit = 'day'; displayFormat = 'd MMM';
+          timeUnit = 'day';
+          displayFormat = 'd MMM';
       }
 
-      // --- 1. จัดการกราฟระดับน้ำ (เหมือนเดิม) ---
-      const ctxWater = document.getElementById('waterLevelChart').getContext('2d');
-      const gradientWater = ctxWater.createLinearGradient(0, 0, 0, 400);
-      gradientWater.addColorStop(0, 'rgba(99, 102, 241, 0.5)'); 
-      gradientWater.addColorStop(1, 'rgba(99, 102, 241, 0.0)');
+      const annotations = {
+        lineWatch: {
+          type: 'line', yMin: thresholds.watch, yMax: thresholds.watch,
+          borderColor: 'rgb(250, 204, 21)', borderWidth: 2, borderDash: [5, 5],
+          label: { content: `เฝ้าระวัง (${thresholds.watch.toFixed(2)} ม.)`, display: true, position: 'end', backgroundColor: 'rgba(253, 224, 71, 0.9)', color: '#854d0e', font: { family: 'Sarabun', weight: 'bold' } }
+        },
+        lineCritical: {
+          type: 'line', yMin: thresholds.critical, yMax: thresholds.critical,
+          borderColor: 'rgb(239, 68, 68)', borderWidth: 2, borderDash: [5, 5],
+          label: { content: `วิกฤต (${thresholds.critical.toFixed(2)} ม.)`, display: true, position: 'end', backgroundColor: 'rgba(252, 165, 165, 0.9)', color: '#7f1d1d', font: { family: 'Sarabun', weight: 'bold' } }
+        }
+      };
+
+      // สร้าง Gradient สีสวยๆ ใต้กราฟ
+      const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+      gradient.addColorStop(0, 'rgba(99, 102, 241, 0.5)'); // Indigo
+      gradient.addColorStop(1, 'rgba(99, 102, 241, 0.0)');
 
       const waterData = dataPoints.map(d => ({ x: d.x, y: d.y }));
 
@@ -381,30 +495,68 @@
         waterLevelChart.data.datasets[0].data = waterData;
         waterLevelChart.options.scales.x.time.unit = timeUnit;
         waterLevelChart.options.scales.x.time.displayFormats[timeUnit] = displayFormat;
+        waterLevelChart.options.plugins.tooltip.callbacks.title = (context) => {
+             return new Date(context[0].parsed.x).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' }) + ' น.';
+        };
+        waterLevelChart.options.plugins.annotation.annotations = annotations;
         waterLevelChart.update();
       } else {
-        waterLevelChart = new Chart(ctxWater, {
+        waterLevelChart = new Chart(ctx, {
           type: 'line',
           data: {
             datasets: [{
-              label: 'ระดับน้ำ', data: waterData,
-              borderColor: 'rgb(79, 70, 229)', backgroundColor: gradientWater,
-              borderWidth: 3, pointRadius: 0, pointHoverRadius: 6, fill: true, tension: 0.4
+              label: 'ระดับน้ำ',
+              data: waterData,
+              borderColor: 'rgb(79, 70, 229)',
+              backgroundColor: gradient,
+              borderWidth: 3,
+              pointRadius: 0, // ซ่อนจุดเพื่อให้เส้นดูสมูท
+              pointHoverRadius: 6,
+              pointHoverBackgroundColor: '#ffffff',
+              pointHoverBorderColor: 'rgb(79, 70, 229)',
+              pointHoverBorderWidth: 3,
+              fill: true,
+              tension: 0.4 // ทำให้เส้นกราฟโค้งมน
             }]
           },
           options: {
             responsive: true, maintainAspectRatio: false,
-            interaction: { mode: 'index', intersect: false },
+            interaction: { mode: 'index', intersect: false }, // hover ง่ายขึ้น
             scales: {
-              x: { type: 'time', time: { unit: timeUnit, displayFormats: { [timeUnit]: displayFormat } }, grid: { display: false }, ticks: { font: { family: 'Sarabun' }, color: '#6b7280' } },
-              y: { beginAtZero: true, title: { display: true, text: 'ระดับน้ำ (เมตร)', font: { family: 'Sarabun', weight: 'bold' } }, grid: { borderDash: [4, 4] } }
+              x: {
+                type: 'time',
+                time: { unit: timeUnit, displayFormats: { [timeUnit]: displayFormat } },
+                grid: { display: false },
+                ticks: { font: { family: 'Sarabun' }, color: '#6b7280', maxRotation: 0, maxTicksLimit: 8 }
+              },
+              y: {
+                beginAtZero: true,
+                title: { display: true, text: 'ระดับน้ำ (เมตร)', font: { family: 'Sarabun', weight: 'bold' }, color: '#4b5563' },
+                grid: { borderDash: [4, 4], color: '#e5e7eb' },
+                ticks: { font: { family: 'Sarabun' }, color: '#6b7280' }
+              }
             },
-            plugins: { legend: { display: false } }
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                backgroundColor: 'rgba(17, 24, 39, 0.9)',
+                titleFont: { family: 'Sarabun', size: 14 },
+                bodyFont: { family: 'Sarabun', size: 14, weight: 'bold' },
+                padding: 12,
+                cornerRadius: 8,
+                displayColors: false,
+                callbacks: {
+                  title: (context) => new Date(context[0].parsed.x).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' }) + ' น.',
+                  label: (context) => `ระดับน้ำ: ${context.parsed.y.toFixed(2)} เมตร`
+                }
+              },
+              annotation: { annotations: annotations }
+            }
           }
         });
       }
 
-      // --- 2. จัดการกราฟแบตเตอรี่ (แทรกใหม่) ---
+      // --- จัดการกราฟแบตเตอรี่ ---
       const ctxBatt = document.getElementById('batteryChart').getContext('2d');
       const battData = dataPoints.filter(d => d.battery !== null).map(d => ({ x: d.x, y: d.battery }));
 
@@ -428,16 +580,25 @@
             responsive: true, maintainAspectRatio: false,
             interaction: { mode: 'index', intersect: false },
             scales: {
-              x: { type: 'time', time: { unit: timeUnit, displayFormats: { [timeUnit]: displayFormat } }, grid: { display: false }, ticks: { font: { family: 'Sarabun' }, color: '#6b7280' } },
+              x: { type: 'time', time: { unit: timeUnit, displayFormats: { [timeUnit]: displayFormat } }, grid: { display: false }, ticks: { font: { family: 'Sarabun' }, color: '#6b7280', maxRotation: 0, maxTicksLimit: 8 } },
               y: { 
                 suggestedMin: 3.0, suggestedMax: 4.3, // ช่วงแรงดันแบต Li-ion
-                grid: { borderDash: [4, 4] }, ticks: { font: { family: 'Sarabun' }, color: '#6b7280' } 
+                grid: { borderDash: [4, 4], color: '#e5e7eb' }, ticks: { font: { family: 'Sarabun' }, color: '#6b7280' } 
               }
             },
             plugins: { 
               legend: { display: false },
               tooltip: {
-                callbacks: { label: (context) => `แบตเตอรี่: ${context.parsed.y.toFixed(2)} V` }
+                backgroundColor: 'rgba(17, 24, 39, 0.9)',
+                titleFont: { family: 'Sarabun', size: 14 },
+                bodyFont: { family: 'Sarabun', size: 14, weight: 'bold' },
+                padding: 12,
+                cornerRadius: 8,
+                displayColors: false,
+                callbacks: {
+                  title: (context) => new Date(context[0].parsed.x).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' }) + ' น.',
+                  label: (context) => `แบตเตอรี่: ${context.parsed.y.toFixed(2)} V`
+                }
               }
             }
           }
@@ -445,36 +606,63 @@
       }
     }
 
+    // จัดการปุ่ม Range
     document.getElementById('range-buttons').addEventListener('click', (e) => {
       if (e.target.tagName === 'BUTTON') {
         const range = e.target.getAttribute('data-range');
+        
+        // ล้างค่า Date picker
         document.getElementById('specific-date').value = '';
+
         document.querySelectorAll('#range-buttons button').forEach(btn => {
-          btn.classList.remove('chart-btn-active'); btn.classList.add('chart-btn-inactive');
+          btn.classList.remove('chart-btn-active');
+          btn.classList.add('chart-btn-inactive');
         });
-        e.target.classList.remove('chart-btn-inactive'); e.target.classList.add('chart-btn-active');
-        loadChartData(chartSensorId, 'range', range);
+        e.target.classList.remove('chart-btn-inactive');
+        e.target.classList.add('chart-btn-active');
+
+        currentFetchType = 'range';
+        currentFetchValue = range;
+        loadChartData(chartSensorId, currentFetchType, currentFetchValue);
       }
     });
 
+    // จัดการ Date Picker
     document.getElementById('specific-date').addEventListener('change', (e) => {
-        if (e.target.value) {
+        const selectedDate = e.target.value;
+        if (selectedDate) {
+            // เคลียร์ปุ่ม Range ออก
             document.querySelectorAll('#range-buttons button').forEach(btn => {
-                btn.classList.remove('chart-btn-active'); btn.classList.add('chart-btn-inactive');
+                btn.classList.remove('chart-btn-active');
+                btn.classList.add('chart-btn-inactive');
             });
-            loadChartData(chartSensorId, 'date', e.target.value);
+            
+            currentFetchType = 'date';
+            currentFetchValue = selectedDate;
+            loadChartData(chartSensorId, currentFetchType, currentFetchValue);
         }
     });
 
     document.addEventListener('DOMContentLoaded', async () => {
       const urlParams = new URLSearchParams(window.location.search);
       const sensorId = urlParams.get('id');
-      if (sensorId && await loadSensorData(sensorId)) {
+
+      if (!sensorId) {
+        loadingState.style.display = 'none';
+        errorState.style.display = 'block';
+        errorState.innerHTML = '<p class="text-red-500 font-medium bg-red-50 p-4 rounded-lg inline-block border border-red-200">ไม่พบรหัสจุดวัดใน URL</p>';
+        return;
+      }
+
+      const configLoaded = await loadSensorData(sensorId);
+      if (configLoaded) {
         await loadChartData(sensorId, 'range', '3h'); 
         loadingState.style.display = 'none';
         content.style.display = 'block';
       }
     });
   </script>
+
 </body>
+
 </html>
