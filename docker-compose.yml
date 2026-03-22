@@ -7,6 +7,8 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: examplepassword
+    volumes:                 # <--- เพิ่มส่วนนี้
+      - ./mongo-data:/data/db  # <--- บอกให้เก็บข้อมูลไว้ในโฟลเดอร์ mongo-data ในเครื่องเรา
 
   # ตัวรับส่งข้อมูล MQTT
   mosquitto:
