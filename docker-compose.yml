@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:6.0
+    container_name: water-level-mongodb
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - water-net
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: water-level-api
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      PORT: 5000
+      MONGO_URI: mongodb://admin:password123@mongodb:27017/water_monitoring?authSource=admin
+    volumes:
+      - uploads_data:/app/public/uploads   # ใช้ Named Volume เก็บรูปภาพให้อยู่ถาวร
+    depends_on:
+      - mongodb
+    networks:
+      - water-net
+
+volumes:
+  mongo_data:
+    driver: local
+  uploads_data:
+    driver: local
+
+networks:
+  water-net:
+    driver: bridge

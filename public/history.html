@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;">
+  <title>ข้อมูลย้อนหลัง & กราฟวิเคราะห์ | ระบบตรวจวัดระดับน้ำ</title>
+
+  <!-- Google Fonts: Noto Sans Thai -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['"Noto Sans Thai"', 'sans-serif'] },
+          colors: { 
+            brand: { 
+              50: '#fff7ed', 
+              100: '#ffedd5', 
+              500: '#f97316', 
+              600: '#ea580c', 
+              700: '#c2410c' 
+            } 
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Noto Sans Thai', sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased flex flex-col min-h-screen pb-24">
+
+  <!-- ================= 1. HEADER ด้านบน ================= -->
+  <header class="bg-white border-b border-slate-200/80 px-4 md:px-6 py-4 flex items-center justify-between shadow-sm sticky top-0 z-30">
+    <div class="flex items-center gap-3.5">
+      <div class="w-11 h-11 md:w-12 md:h-12 rounded-xl bg-gradient-to-tr from-brand-600 to-amber-500 flex items-center justify-center text-white shadow-md shadow-brand-500/20 shrink-0">
+        <i data-lucide="line-chart" class="w-6 h-6 md:w-7 md:h-7"></i>
+      </div>
+      <div>
+        <h1 class="text-lg md:text-2xl font-bold text-slate-900 tracking-tight leading-tight">ข้อมูลย้อนหลัง & กราฟวิเคราะห์</h1>
+        <p class="text-sm md:text-base text-slate-500 font-medium mt-0.5">วิเคราะห์แนวโน้มระดับน้ำและสถานะจุดตรวจวัด</p>
+      </div>
+    </div>
+    <a href="/index.html" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-xs md:text-sm font-bold transition flex items-center gap-2">
+      <i data-lucide="arrow-left" class="w-4 h-4"></i> กลับหน้าภาพรวม
+    </a>
+  </header>
+
+  <!-- ================= 2. MAIN CONTENT ================= -->
+  <main class="flex-1 max-w-6xl w-full mx-auto p-4 md:p-6 space-y-5">
+    
+    <!-- แถบควบคุม: เลือกจุดวัด & Timeframe -->
+    <div class="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+      
+      <!-- ตัวเลือกจุดวัด -->
+      <div class="w-full lg:w-auto flex flex-col sm:flex-row sm:items-center gap-2.5">
+        <label class="text-sm md:text-base font-bold text-slate-700 shrink-0 flex items-center gap-1.5">
+          <i data-lucide="map-pin" class="w-4 h-4 text-brand-600"></i>
+          <span>จุดตรวจวัด:</span>
+        </label>
+        <select id="deviceSelect" class="w-full sm:w-72 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm md:text-base font-semibold bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500">
+          <option value="">กำลังโหลดรายชื่อจุดวัด...</option>
+        </select>
+      </div>
+
+      <!-- ตัวเลือกช่วงเวลา (Timeframe) -->
+      <div class="w-full lg:w-auto flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0">
+        <span class="text-sm md:text-base font-bold text-slate-700 mr-1 shrink-0">ช่วงเวลา:</span>
+        <button onclick="setTimeframe('1h')" class="tf-btn px-3.5 py-2 rounded-xl text-xs md:text-sm font-bold border bg-slate-100 text-slate-700 hover:bg-slate-200 transition" data-tf="1h">1 ชม.</button>
+        <button onclick="setTimeframe('6h')" class="tf-btn px-3.5 py-2 rounded-xl text-xs md:text-sm font-bold border bg-slate-100 text-slate-700 hover:bg-slate-200 transition" data-tf="6h">6 ชม.</button>
+        <button onclick="setTimeframe('24h')" class="tf-btn px-3.5 py-2 rounded-xl text-xs md:text-sm font-bold border bg-brand-600 text-white border-brand-600 transition shadow-sm" data-tf="24h">24 ชม.</button>
+        <button onclick="setTimeframe('7d')" class="tf-btn px-3.5 py-2 rounded-xl text-xs md:text-sm font-bold border bg-slate-100 text-slate-700 hover:bg-slate-200 transition" data-tf="7d">7 วัน</button>
+        <button onclick="setTimeframe('30d')" class="tf-btn px-3.5 py-2 rounded-xl text-xs md:text-sm font-bold border bg-slate-100 text-slate-700 hover:bg-slate-200 transition" data-tf="30d">30 วัน</button>
+      </div>
+    </div>
+
+    <!-- ส่วนที่ 1: แสดงข้อมูลสถิติล่าสุด (Metrics Cards) -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5 md:gap-4">
+      <!-- 1. ระดับน้ำ -->
+      <div class="bg-white p-4 md:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
+        <div class="flex items-center justify-between text-slate-500">
+          <span class="text-xs md:text-sm font-bold">ระดับความสูงน้ำ</span>
+          <i data-lucide="waves" class="w-4 h-4 text-brand-600"></i>
+        </div>
+        <div class="mt-2 flex items-baseline gap-1.5">
+          <span id="metricWaterDepth" class="text-2xl md:text-3xl font-extrabold text-slate-900">-</span>
+          <span class="text-xs md:text-sm font-bold text-slate-400">cm</span>
+        </div>
+        <div class="mt-2 text-[11px] md:text-xs text-slate-400 flex items-center gap-1">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span> จากจุดต่ำสุด
+        </div>
+      </div>
+
+      <!-- 2. ระยะห่างเซนเซอร์ -->
+      <div class="bg-white p-4 md:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
+        <div class="flex items-center justify-between text-slate-500">
+          <span class="text-xs md:text-sm font-bold">เซนเซอร์ถึงผิวน้ำ</span>
+          <i data-lucide="arrow-down-up" class="w-4 h-4 text-sky-500"></i>
+        </div>
+        <div class="mt-2 flex items-baseline gap-1.5">
+          <span id="metricDistance" class="text-2xl md:text-3xl font-extrabold text-slate-900">-</span>
+          <span class="text-xs md:text-sm font-bold text-slate-400">cm</span>
+        </div>
+        <div class="mt-2 text-[11px] md:text-xs text-slate-400">
+          ระยะ Raw วัดจริง
+        </div>
+      </div>
+
+      <!-- 3. แบตเตอรี่ -->
+      <div class="bg-white p-4 md:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
+        <div class="flex items-center justify-between text-slate-500">
+          <span class="text-xs md:text-sm font-bold">ระดับแบตเตอรี่</span>
+          <i data-lucide="battery-charging" class="w-4 h-4 text-emerald-500"></i>
+        </div>
+        <div class="mt-2 flex items-baseline gap-1.5">
+          <span id="metricBattery" class="text-2xl md:text-3xl font-extrabold text-slate-900">-</span>
+          <span class="text-xs md:text-sm font-bold text-slate-400">%</span>
+        </div>
+        <div id="metricBatteryVolt" class="mt-2 text-[11px] md:text-xs text-slate-400">
+          แรงดัน: - V
+        </div>
+      </div>
+
+      <!-- 4. ความแรงสัญญาณ LoRa -->
+      <div class="bg-white p-4 md:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
+        <div class="flex items-center justify-between text-slate-500">
+          <span class="text-xs md:text-sm font-bold">สัญญาณ LoRa</span>
+          <i data-lucide="signal" class="w-4 h-4 text-indigo-500"></i>
+        </div>
+        <div class="mt-2 flex items-baseline gap-1.5">
+          <span id="metricRssi" class="text-2xl md:text-3xl font-extrabold text-slate-900">-</span>
+          <span class="text-xs md:text-sm font-bold text-slate-400">dBm</span>
+        </div>
+        <div id="metricSnr" class="mt-2 text-[11px] md:text-xs text-slate-400">
+          SNR: - dB
+        </div>
+      </div>
+    </div>
+
+    <!-- แถบระบุเวลาอัปเดตล่าสุด & เกณฑ์ระดับน้ำ -->
+    <div class="bg-white px-5 py-3.5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs md:text-sm">
+      <div class="flex items-center gap-2 font-bold text-slate-700">
+        <i data-lucide="clock" class="w-4 h-4 text-brand-600"></i>
+        <span>อัปเดตข้อมูลล่าสุดเมื่อ:</span>
+        <span id="metricLastUpdated" class="text-slate-900 font-extrabold">-</span>
+      </div>
+
+      <!-- ป้ายเกณฑ์ (ถ้ามี) -->
+      <div id="thresholdBadges" class="flex items-center gap-3">
+        <span id="badgeWarnThresh" class="hidden text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200 font-bold">
+          เตือนภัย: <b id="valWarnThresh">0</b> cm
+        </span>
+        <span id="badgeCritThresh" class="hidden text-rose-700 bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-200 font-bold">
+          วิกฤต: <b id="valCritThresh">0</b> cm
+        </span>
+      </div>
+    </div>
+
+    <!-- กล่องกราฟแสดงผล -->
+    <div class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-slate-200/80 space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
+        <div>
+          <h2 id="chartTitle" class="text-base md:text-xl font-bold text-slate-900">กราฟระดับความสูงน้ำ (cm)</h2>
+          <p class="text-xs md:text-sm text-slate-500 font-medium flex items-center gap-2 mt-0.5">
+            <span>สตรีมข้อมูลผ่าน LoRa Gateway</span>
+            <span id="nightLegend" class="hidden items-center gap-1 text-[11px] md:text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">
+              <span class="w-2.5 h-2.5 rounded-sm bg-slate-300/80 inline-block"></span> แถบสีเทา = ช่วงเวลากลางคืน (18:00 - 06:00 น.)
+            </span>
+          </p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span id="recordCount" class="text-xs md:text-sm bg-slate-100 text-slate-700 px-3.5 py-1 rounded-full font-bold">
+            0 รายการ
+          </span>
+        </div>
+      </div>
+
+      <!-- Canvas กราฟ -->
+      <div class="relative h-80 md:h-[430px] w-full">
+        <canvas id="waterChart"></canvas>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ================= 3. แถบเมนูด้านล่างสุด (Fixed Bottom Navigation) ================= -->
+  <nav class="fixed bottom-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-md border-t border-slate-200/90 px-4 md:px-8 flex items-center justify-around z-40 shadow-lg">
+    <!-- เมนูที่ 1: ภาพรวมระบบ -->
+    <a href="/index.html" class="flex items-center gap-2 py-2 px-5 md:px-6 rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-semibold text-xs md:text-sm transition duration-150">
+      <i data-lucide="layout-dashboard" class="w-4 h-4 md:w-5 md:h-5"></i>
+      <span>ภาพรวมระบบ</span>
+    </a>
+
+    <!-- เมนูที่ 2: ข้อมูลย้อนหลัง (Active) -->
+    <a href="/history.html" class="flex items-center gap-2 py-2 px-5 md:px-6 rounded-full bg-brand-50 text-brand-600 border border-brand-200/80 font-bold text-xs md:text-sm transition duration-150 shadow-sm">
+      <i data-lucide="line-chart" class="w-4 h-4 md:w-5 md:h-5"></i>
+      <span>ข้อมูลย้อนหลัง</span>
+    </a>
+
+    <!-- เมนูที่ 3: หน้าแอดมิน -->
+    <a href="/admin.html" class="flex items-center gap-2 py-2 px-5 md:px-6 rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-semibold text-xs md:text-sm transition duration-150">
+      <i data-lucide="settings" class="w-4 h-4 md:w-5 md:h-5"></i>
+      <span>หน้าแอดมิน (ตั้งค่า)</span>
+    </a>
+  </nav>
+
+  <!-- ================= JAVASCRIPT & CHART LOGIC ================= -->
+  <script>
+    let currentDeviceId = '';
+    let currentTimeframe = '24h';
+    let myChart = null;
+    let allDevices = [];
+    let currentLogs = [];
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const paramDevice = urlParams.get('device');
+
+    // -------------------------------------------------------------
+    // Plugin สำหรับทำ Highlight ช่วงเวลากลางคืน (18:00 - 06:00)
+    // -------------------------------------------------------------
+    const nightTimeHighlightPlugin = {
+      id: 'nightTimeHighlight',
+      beforeDraw: (chart) => {
+        // ให้ไฮไลต์เฉพาะช่วงที่ Timeframe ต่ำกว่าหรือเท่ากับ 24 ชม.
+        if (currentTimeframe !== '1h' && currentTimeframe !== '6h' && currentTimeframe !== '24h') {
+          return;
+        }
+
+        const { ctx, chartArea: { top, bottom, height }, scales: { x } } = chart;
+        if (!x || !currentLogs || currentLogs.length === 0) return;
+
+        ctx.save();
+        ctx.fillStyle = 'rgba(30, 41, 59, 0.06)'; // สีเงากลางคืนนุ่มนวล
+
+        for (let i = 0; i < currentLogs.length; i++) {
+          const logDate = new Date(currentLogs[i].created_at);
+          const hour = logDate.getHours();
+
+          // เวลากลางคืน: ตั้งแต่ 18:00 ถึง 05:59 น.
+          const isNight = (hour >= 18 || hour < 6);
+
+          if (isNight) {
+            const currentX = x.getPixelForTick(i);
+            const prevX = i > 0 ? x.getPixelForTick(i - 1) : currentX;
+            const nextX = i < currentLogs.length - 1 ? x.getPixelForTick(i + 1) : currentX;
+
+            const left = (prevX + currentX) / 2;
+            const right = (currentX + nextX) / 2;
+            const width = Math.max(right - left, 1);
+
+            ctx.fillRect(left, top, width, height);
+          }
+        }
+        ctx.restore();
+      }
+    };
+
+    Chart.register(nightTimeHighlightPlugin);
+
+    // -------------------------------------------------------------
+    // โหลดรายชื่อจุดวัด
+    // -------------------------------------------------------------
+    async function loadDevices() {
+      try {
+        const res = await fetch('/api/devices');
+        allDevices = await res.json();
+        const select = document.getElementById('deviceSelect');
+        
+        if (!allDevices || allDevices.length === 0) {
+          select.innerHTML = '<option value="">ไม่พบจุดวัดในระบบ</option>';
+          return;
+        }
+
+        select.innerHTML = allDevices.map(d => 
+          `<option value="${d.device_id}">${d.device_name || 'จุดวัด'} (${d.device_id})</option>`
+        ).join('');
+
+        if (paramDevice && allDevices.some(d => d.device_id === paramDevice)) {
+          select.value = paramDevice;
+        }
+        currentDeviceId = select.value;
+
+        updateThresholdUI();
+        loadHistoryData();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function updateThresholdUI() {
+      const dev = allDevices.find(d => d.device_id === currentDeviceId);
+      const badgeWarn = document.getElementById('badgeWarnThresh');
+      const badgeCrit = document.getElementById('badgeCritThresh');
+
+      if (dev && dev.warning_threshold_cm !== undefined && dev.warning_threshold_cm !== null) {
+        document.getElementById('valWarnThresh').innerText = dev.warning_threshold_cm;
+        badgeWarn.classList.remove('hidden');
+      } else {
+        badgeWarn.classList.add('hidden');
+      }
+
+      if (dev && dev.critical_threshold_cm !== undefined && dev.critical_threshold_cm !== null) {
+        document.getElementById('valCritThresh').innerText = dev.critical_threshold_cm;
+        badgeCrit.classList.remove('hidden');
+      } else {
+        badgeCrit.classList.add('hidden');
+      }
+
+      // แสดง Legend แถบสีกลางคืน ถ้าเป็น Timeframe <= 24h
+      const nightLegend = document.getElementById('nightLegend');
+      if (currentTimeframe === '1h' || currentTimeframe === '6h' || currentTimeframe === '24h') {
+        nightLegend.classList.remove('hidden');
+        nightLegend.classList.add('inline-flex');
+      } else {
+        nightLegend.classList.add('hidden');
+        nightLegend.classList.remove('inline-flex');
+      }
+    }
+
+    // -------------------------------------------------------------
+    // โหลดข้อมูลย้อนหลังและอัปเดตการ์ดสถิติต่างๆ
+    // -------------------------------------------------------------
+    async function loadHistoryData() {
+      if (!currentDeviceId) return;
+      try {
+        const res = await fetch(`/api/telemetry/history/${currentDeviceId}?timeframe=${currentTimeframe}`);
+        currentLogs = await res.json();
+
+        document.getElementById('recordCount').innerText = `${currentLogs.length} รายการ`;
+
+        // อัปเดตข้อมูลสถิติล่าสุด (แถวบนสุด)
+        updateCurrentMetrics(currentLogs);
+
+        // วาดกราฟ
+        renderChart(currentLogs);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function updateCurrentMetrics(logs) {
+      if (!logs || logs.length === 0) {
+        document.getElementById('metricWaterDepth').innerText = '-';
+        document.getElementById('metricDistance').innerText = '-';
+        document.getElementById('metricBattery').innerText = '-';
+        document.getElementById('metricBatteryVolt').innerText = 'แรงดัน: - V';
+        document.getElementById('metricRssi').innerText = '-';
+        document.getElementById('metricSnr').innerText = 'SNR: - dB';
+        document.getElementById('metricLastUpdated').innerText = 'ยังไม่มีข้อมูลในช่วงนี้';
+        return;
+      }
+
+      // นำรายการล่าสุดตัวสุดท้าย
+      const latest = logs[logs.length - 1];
+
+      document.getElementById('metricWaterDepth').innerText = latest.water_depth_cm !== null ? latest.water_depth_cm : '-';
+      document.getElementById('metricDistance').innerText = latest.distance_cm !== undefined ? latest.distance_cm : '-';
+      document.getElementById('metricBattery').innerText = (latest.battery_percent !== undefined && latest.battery_percent !== null) ? latest.battery_percent : '100';
+      
+      const volt = latest.battery_voltage !== undefined ? latest.battery_voltage.toFixed(2) : '-';
+      document.getElementById('metricBatteryVolt').innerText = `แรงดัน: ${volt} V`;
+
+      const rssi = (latest.signal && latest.signal.rssi !== undefined) ? latest.signal.rssi : (latest.rssi || '-');
+      document.getElementById('metricRssi').innerText = rssi;
+
+      const snr = (latest.signal && latest.signal.snr !== undefined) ? latest.signal.snr : (latest.snr || '-');
+      document.getElementById('metricSnr').innerText = `SNR: ${snr} dB`;
+
+      const dateObj = new Date(latest.created_at);
+      document.getElementById('metricLastUpdated').innerText = dateObj.toLocaleDateString('th-TH', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      }) + ` (${getTimeAgo(dateObj)})`;
+    }
+
+    function getTimeAgo(date) {
+      const seconds = Math.floor((new Date() - date) / 1000);
+      if (seconds < 60) return 'เมื่อสักครู่';
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) return `${minutes} นาทีที่แล้ว`;
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return `${hours} ชั่วโมงที่แล้ว`;
+      const days = Math.floor(hours / 24);
+      return `${days} วันที่แล้ว`;
+    }
+
+    // -------------------------------------------------------------
+    // วาดกราฟเส้น Chart.js
+    // -------------------------------------------------------------
+    function renderChart(logs) {
+      const ctx = document.getElementById('waterChart').getContext('2d');
+      const dev = allDevices.find(d => d.device_id === currentDeviceId);
+      
+      const labels = logs.map(l => {
+        const d = new Date(l.created_at);
+        if (currentTimeframe === '7d' || currentTimeframe === '30d') {
+          return `${d.getDate()}/${d.getMonth()+1} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+        }
+        return d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      });
+
+      const waterDepths = logs.map(l => l.water_depth_cm !== null ? l.water_depth_cm : 0);
+
+      const datasets = [
+        {
+          label: 'ระดับความสูงน้ำ (cm)',
+          data: waterDepths,
+          borderColor: '#ea580c',
+          backgroundColor: 'rgba(234, 88, 12, 0.12)',
+          borderWidth: 2.5,
+          fill: true,
+          tension: 0.25,
+          pointRadius: logs.length > 70 ? 0 : 3,
+          pointHoverRadius: 6,
+          order: 1
+        }
+      ];
+
+      // เส้นเกณฑ์เตือนภัย (ถ้ามี)
+      if (dev && dev.warning_threshold_cm !== undefined && dev.warning_threshold_cm !== null && logs.length > 0) {
+        datasets.push({
+          label: `เกณฑ์เตือนภัย (${dev.warning_threshold_cm} cm)`,
+          data: new Array(logs.length).fill(dev.warning_threshold_cm),
+          borderColor: '#f59e0b',
+          borderWidth: 2,
+          borderDash: [6, 4],
+          fill: false,
+          pointRadius: 0,
+          pointHoverRadius: 0,
+          order: 0
+        });
+      }
+
+      // เส้นเกณฑ์วิกฤต (ถ้ามี)
+      if (dev && dev.critical_threshold_cm !== undefined && dev.critical_threshold_cm !== null && logs.length > 0) {
+        datasets.push({
+          label: `เกณฑ์วิกฤต (${dev.critical_threshold_cm} cm)`,
+          data: new Array(logs.length).fill(dev.critical_threshold_cm),
+          borderColor: '#f43f5e',
+          borderWidth: 2,
+          borderDash: [6, 4],
+          fill: false,
+          pointRadius: 0,
+          pointHoverRadius: 0,
+          order: 0
+        });
+      }
+
+      if (myChart) {
+        myChart.destroy();
+      }
+
+      myChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: datasets
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: 'index',
+            intersect: false
+          },
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                font: { family: 'Noto Sans Thai', size: 13, weight: 'bold' },
+                padding: 16,
+                usePointStyle: true,
+                pointStyle: 'circle'
+              }
+            },
+            tooltip: {
+              titleFont: { family: 'Noto Sans Thai', size: 13, weight: 'bold' },
+              bodyFont: { family: 'Noto Sans Thai', size: 12 },
+              padding: 10,
+              boxPadding: 4,
+              callbacks: {
+                label: function(context) {
+                  return ` ${context.dataset.label}: ${context.parsed.y} cm`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              ticks: { 
+                font: { family: 'Noto Sans Thai', size: 11, weight: '500' },
+                maxRotation: 0,
+                autoSkip: true,
+                maxTicksLimit: 10
+              },
+              grid: { color: '#f1f5f9' }
+            },
+            y: {
+              ticks: { 
+                font: { family: 'Noto Sans Thai', size: 12, weight: '600' },
+                callback: function(val) { return val + ' cm'; }
+              },
+              beginAtZero: true,
+              grid: { color: '#f1f5f9' }
+            }
+          }
+        }
+      });
+    }
+
+    function setTimeframe(tf) {
+      currentTimeframe = tf;
+      document.querySelectorAll('.tf-btn').forEach(btn => {
+        if (btn.dataset.tf === tf) {
+          btn.className = 'tf-btn px-3.5 py-2 rounded-xl text-xs md:text-sm font-bold border bg-brand-600 text-white border-brand-600 transition shadow-sm';
+        } else {
+          btn.className = 'tf-btn px-3.5 py-2 rounded-xl text-xs md:text-sm font-bold border bg-slate-100 text-slate-700 hover:bg-slate-200 transition';
+        }
+      });
+      updateThresholdUI();
+      loadHistoryData();
+    }
+
+    document.getElementById('deviceSelect').addEventListener('change', (e) => {
+      currentDeviceId = e.target.value;
+      updateThresholdUI();
+      loadHistoryData();
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      loadDevices();
+    });
+  </script>
+</body>
+</html>

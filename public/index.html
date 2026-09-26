@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบตรวจวัดระดับน้ำและเครือข่ายเซนเซอร์</title>
+
+  <!-- Google Fonts: Noto Sans Thai -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Noto Sans Thai"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#fff7ed',
+              100: '#ffedd5',
+              500: '#f97316',
+              600: '#ea580c',
+              700: '#c2410c',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: 'Noto Sans Thai', sans-serif;
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 4px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased flex flex-col min-h-screen md:h-screen md:overflow-hidden">
+
+  <!-- ================= 1. HEADER ด้านบน ================= -->
+  <header class="bg-white border-b border-slate-200/80 px-4 md:px-6 py-4 shrink-0 flex items-center justify-between shadow-sm z-30">
+    <div class="flex items-center gap-3.5">
+      <div class="w-11 h-11 md:w-12 md:h-12 rounded-xl bg-gradient-to-tr from-brand-600 to-amber-500 flex items-center justify-center text-white shadow-md shadow-brand-500/20 shrink-0">
+        <i data-lucide="waves" class="w-6 h-6 md:w-7 md:h-7"></i>
+      </div>
+      <div>
+        <h1 class="text-lg md:text-2xl font-bold text-slate-900 tracking-tight leading-tight">ระบบตรวจวัดระดับน้ำและเครือข่ายเซนเซอร์</h1>
+        <p class="text-sm md:text-base text-slate-500 flex items-center gap-2 mt-0.5 font-medium">
+          <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+          เชื่อมต่อโครงข่าย Gateway LoRa
+        </p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3 md:gap-4">
+      <div class="text-right hidden sm:block">
+        <div class="text-xs text-slate-400 font-medium">อัปเดตข้อมูลล่าสุด</div>
+        <div id="liveClock" class="text-sm md:text-base font-semibold text-slate-700">กำลังเชื่อมต่อ...</div>
+      </div>
+      <div class="flex items-center gap-2 bg-emerald-50 border border-emerald-200/80 px-4 py-2 rounded-xl text-emerald-700 text-sm md:text-base font-bold">
+        <span class="relative flex h-2.5 w-2.5">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+        </span>
+        Online
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= 2. MAIN WORKSPACE ================= -->
+  <main class="flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden relative mb-16 md:mb-16">
+
+    <!-- คอลัมน์ซ้าย: แผนที่ Leaflet (65%) -->
+    <section class="relative w-full h-[55vh] md:h-full md:w-[65%] bg-slate-100 flex flex-col shrink-0">
+      <!-- Search Bar ลอยอยู่บนแผนที่ -->
+      <div class="absolute top-4 left-4 z-[1000] w-80 md:w-96 max-w-[calc(100%-2rem)]">
+        <div class="relative flex items-center bg-white/95 backdrop-blur-md rounded-2xl shadow-lg border border-slate-200/80 px-4 py-3">
+          <i data-lucide="search" class="w-5 h-5 text-slate-400 mr-2.5 shrink-0"></i>
+          <input 
+            type="text" 
+            id="mapSearchInput" 
+            placeholder="ค้นหาชื่อจุดวัด, คลอง, หรือถนน..." 
+            class="bg-transparent text-sm md:text-base w-full focus:outline-none placeholder:text-slate-400 text-slate-800 font-medium"
+          />
+          <button id="clearSearchBtn" class="hidden text-slate-400 hover:text-slate-600">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- แผนที่ Leaflet -->
+      <div id="map" class="w-full h-full z-10"></div>
+
+      <!-- Legend สรุปความหมายของสถานะ -->
+      <div class="absolute bottom-4 left-4 z-[1000] bg-white/95 backdrop-blur-md p-3.5 md:p-4 rounded-2xl shadow-lg border border-slate-200/80 text-slate-700">
+        <div class="font-bold text-xs md:text-sm uppercase tracking-wider text-slate-500 mb-2">เกณฑ์สถานการณ์น้ำ</div>
+        <div class="flex items-center gap-4 font-semibold text-xs md:text-sm">
+          <div class="flex items-center gap-1.5">
+            <span class="w-3.5 h-3.5 rounded-full bg-rose-500 inline-block shadow-sm"></span>
+            <span>วิกฤต</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="w-3.5 h-3.5 rounded-full bg-amber-500 inline-block shadow-sm"></span>
+            <span>เตือนภัย</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="w-3.5 h-3.5 rounded-full bg-emerald-500 inline-block shadow-sm"></span>
+            <span>ปกติ</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- คอลัมน์ขวา: รายการและแถบสรุปสถานะ (35%) -->
+    <aside class="w-full md:w-[35%] md:h-full bg-white border-t md:border-t-0 md:border-l border-slate-200/80 flex flex-col z-20 shadow-[-4px_0_12px_rgba(0,0,0,0.02)]">
+      
+      <!-- Metrics Grid: การ์ดสรุปสถานะรวม -->
+      <div class="p-4 md:p-5 border-b border-slate-100 bg-slate-50/60 shrink-0">
+        <h2 class="text-xs md:text-sm font-bold text-slate-500 tracking-wider uppercase mb-3">สรุปภาพรวมสถานการณ์น้ำ</h2>
+        <div class="grid grid-cols-3 gap-3">
+          <div class="bg-rose-50/80 border border-rose-200/80 rounded-2xl p-3 text-center">
+            <div id="countCritical" class="text-2xl md:text-3xl font-extrabold text-rose-600 leading-none">0</div>
+            <div class="text-xs md:text-sm font-bold text-rose-700 mt-1.5">วิกฤต</div>
+          </div>
+          <div class="bg-amber-50/80 border border-amber-200/80 rounded-xl p-3 text-center">
+            <div id="countWarning" class="text-2xl md:text-3xl font-extrabold text-amber-600 leading-none">0</div>
+            <div class="text-xs md:text-sm font-bold text-amber-700 mt-1.5">เตือนภัย</div>
+          </div>
+          <div class="bg-emerald-50/80 border border-emerald-200/80 rounded-xl p-3 text-center">
+            <div id="countNormal" class="text-2xl md:text-3xl font-extrabold text-emerald-600 leading-none">0</div>
+            <div class="text-xs md:text-sm font-bold text-emerald-700 mt-1.5">ปกติ</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- หัวข้อ Sensor List -->
+      <div class="px-5 py-3.5 bg-white border-b border-slate-100 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2 text-sm md:text-base font-bold text-slate-800">
+          <i data-lucide="radio" class="w-4 h-4 md:w-5 md:h-5 text-brand-600"></i>
+          <span>รายการจุดตรวจวัด</span>
+          <span id="stationCountBadge" class="bg-slate-100 text-slate-700 text-xs md:text-sm font-bold px-2.5 py-0.5 rounded-full">0</span>
+        </div>
+        <span class="text-xs md:text-sm text-slate-400 font-medium">คลิกเพื่อดูหมุดบนแผนที่</span>
+      </div>
+
+      <!-- รายการเซนเซอร์ (Scrollable) -->
+      <div id="sensorListContainer" class="flex-1 overflow-y-auto custom-scroll p-4 space-y-3.5 bg-slate-50/40">
+        <div class="py-16 text-center text-slate-400 text-sm md:text-base">
+          <i data-lucide="loader" class="w-8 h-8 mx-auto mb-2 animate-spin text-slate-300"></i>
+          กำลังโหลดข้อมูลจุดตรวจวัด...
+        </div>
+      </div>
+    </aside>
+
+  </main>
+
+  <!-- ================= 3. แถบเมนูด้านล่างสุด (Fixed Bottom Navigation) ================= -->
+  <nav class="fixed bottom-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-md border-t border-slate-200/90 px-4 md:px-8 flex items-center justify-around z-40 shadow-lg">
+    <!-- เมนูที่ 1: ภาพรวมระบบ (Active) -->
+    <a href="/index.html" class="flex items-center gap-2 py-2 px-5 md:px-6 rounded-full bg-brand-50 text-brand-600 border border-brand-200/80 font-bold text-xs md:text-sm transition duration-150 shadow-sm">
+      <i data-lucide="layout-dashboard" class="w-4 h-4 md:w-5 md:h-5"></i>
+      <span>ภาพรวมระบบ</span>
+    </a>
+
+    <!-- เมนูที่ 2: ข้อมูลย้อนหลัง -->
+    <a href="/history.html" class="flex items-center gap-2 py-2 px-5 md:px-6 rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-semibold text-xs md:text-sm transition duration-150">
+      <i data-lucide="line-chart" class="w-4 h-4 md:w-5 md:h-5"></i>
+      <span>ข้อมูลย้อนหลัง</span>
+    </a>
+
+    <!-- เมนูที่ 3: หน้าแอดมิน -->
+    <a href="/admin.html" class="flex items-center gap-2 py-2 px-5 md:px-6 rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-semibold text-xs md:text-sm transition duration-150">
+      <i data-lucide="settings" class="w-4 h-4 md:w-5 md:h-5"></i>
+      <span>หน้าแอดมิน (ตั้งค่า)</span>
+    </a>
+  </nav>
+
+  <!-- ================= JAVASCRIPT & LOGIC ================= -->
+  <script>
+    let stations = [];
+    let map;
+    const markersMap = new Map();
+
+    function getStatusConfig(statusKey) {
+      if (statusKey === 'critical') {
+        return {
+          key: 'critical',
+          label: 'วิกฤต',
+          hex: '#f43f5e',
+          badgeClass: 'bg-rose-50 text-rose-700 border-rose-200',
+          dotClass: 'bg-rose-500',
+          borderHover: 'hover:border-rose-300'
+        };
+      }
+      if (statusKey === 'warning') {
+        return {
+          key: 'warning',
+          label: 'เตือนภัย',
+          hex: '#f59e0b',
+          badgeClass: 'bg-amber-50 text-amber-700 border-amber-200',
+          dotClass: 'bg-amber-500',
+          borderHover: 'hover:border-amber-300'
+        };
+      }
+      return {
+        key: 'normal',
+        label: 'ปกติ',
+        hex: '#10b981',
+        badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+        dotClass: 'bg-emerald-500',
+        borderHover: 'hover:border-emerald-300'
+      };
+    }
+
+    function determineStatus(item) {
+    const depth = item.waterDepthCm || 0;
+    
+    // ถ้ามีการตั้งเกณฑ์เฉพาะจุดวัดนี้ใน Admin ให้ใช้ค่านั้นก่อน
+    const critThresh = (item.criticalThreshold !== null && item.criticalThreshold !== undefined) ? item.criticalThreshold : 50;
+    const warnThresh = (item.warningThreshold !== null && item.warningThreshold !== undefined) ? item.warningThreshold : 25;
+
+    if (depth >= critThresh) return 'critical';
+    if (depth >= warnThresh) return 'warning';
+    return 'normal';
+    }
+
+    function initMap() {
+      map = L.map('map', { zoomControl: false }).setView([13.606, 100.702], 12);
+      L.control.zoom({ position: 'topright' }).addTo(map);
+
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(map);
+    }
+
+    function createCustomMarkerIcon(statusHex, depthCm) {
+      return L.divIcon({
+        className: 'custom-leaflet-marker',
+        html: `
+          <div class="relative flex items-center justify-center">
+            <span class="absolute w-11 h-11 rounded-full" style="background-color: ${statusHex}; opacity: 0.25;"></span>
+            <div class="min-w-[38px] h-[38px] px-1 rounded-full border-2 border-white shadow-md flex items-center justify-center text-sm font-extrabold text-white transition-transform transform hover:scale-110" style="background-color: ${statusHex};">
+              ${Math.round(depthCm)}
+            </div>
+          </div>
+        `,
+        iconSize: [40, 40],
+        iconAnchor: [20, 20],
+        popupAnchor: [0, -22]
+      });
+    }
+
+    function renderMarkers(dataList) {
+      markersMap.forEach(marker => map.removeLayer(marker));
+      markersMap.clear();
+
+      const validLatLngs = [];
+
+      dataList.forEach(st => {
+        if (st.lat === null || st.lng === null || isNaN(st.lat) || isNaN(st.lng)) return;
+
+        validLatLngs.push([st.lat, st.lng]);
+        const statusKey = determineStatus(st);
+        const cfg = getStatusConfig(statusKey);
+        const icon = createCustomMarkerIcon(cfg.hex, st.waterDepthCm);
+        const marker = L.marker([st.lat, st.lng], { icon }).addTo(map);
+
+        const imgTag = st.imageUrl 
+          ? `<div class="mb-3 rounded-xl overflow-hidden h-36 w-full bg-slate-100 border border-slate-200">
+               <img src="${st.imageUrl}" alt="${st.name}" class="w-full h-full object-cover" onerror="this.parentElement.style.display='none'">
+             </div>` 
+          : '';
+
+        const popupContent = `
+          <div class="p-1 font-sans text-slate-800" style="min-width: 250px;">
+            ${imgTag}
+            <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-2 mb-2.5">
+              <span class="text-xs font-bold px-2.5 py-0.5 rounded-md ${cfg.badgeClass} border">${st.type}</span>
+              <span class="text-xs text-slate-500 font-mono font-bold">${st.id}</span>
+            </div>
+            <h4 class="font-bold text-base text-slate-900 leading-snug mb-2.5">${st.name}</h4>
+            <div class="bg-slate-50 p-3 rounded-xl space-y-2 mb-3 border border-slate-100">
+              <div class="flex justify-between items-center text-xs md:text-sm">
+                <span class="text-slate-500">สถานะ:</span>
+                <span class="font-bold text-xs px-2.5 py-0.5 rounded border ${cfg.badgeClass}">${cfg.label}</span>
+              </div>
+              <div class="flex justify-between items-center text-xs md:text-sm">
+                <span class="text-slate-500">ความสูงน้ำจากพื้น:</span>
+                <span class="font-extrabold text-lg" style="color: ${cfg.hex};">${st.waterDepthCm} cm</span>
+              </div>
+              <div class="flex justify-between text-xs md:text-sm">
+                <span class="text-slate-500">เซนเซอร์ถึงผิวน้ำ:</span>
+                <span class="font-semibold text-slate-700">${st.distanceCm !== null ? `${st.distanceCm} cm` : '-'}</span>
+              </div>
+            </div>
+            
+            <a href="/history.html?device=${st.id}" class="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-brand-50 hover:bg-brand-100 text-brand-600 border border-brand-200 rounded-xl text-xs md:text-sm font-bold transition mb-2">
+              <i data-lucide="line-chart" class="w-4 h-4"></i>
+              <span>ดูข้อมูลย้อนหลัง & กราฟ</span>
+            </a>
+
+            <div class="text-[11px] text-slate-400 flex justify-between font-medium pt-1 border-t border-slate-100">
+              <span>สัญญาณ: ${st.rssi !== null ? `${st.rssi} dBm` : '-'}</span>
+              <span>${st.updatedAt}</span>
+            </div>
+          </div>
+        `;
+
+        marker.bindPopup(popupContent, {
+          closeButton: false,
+          className: 'custom-popup rounded-2xl shadow-xl border border-slate-100'
+        });
+
+        marker.on('popupopen', () => lucide.createIcons());
+        markersMap.set(st.id, marker);
+      });
+
+      if (validLatLngs.length === 1) {
+        map.setView(validLatLngs[0], 15);
+      } else if (validLatLngs.length > 1) {
+        map.fitBounds(validLatLngs, { padding: [40, 40] });
+      }
+    }
+
+    function updateMetrics(dataList) {
+      let crit = 0, warn = 0, norm = 0;
+      dataList.forEach(s => {
+        const key = determineStatus(s);
+        if (key === 'critical') crit++;
+        else if (key === 'warning') warn++;
+        else norm++;
+      });
+
+      document.getElementById('countCritical').innerText = crit;
+      document.getElementById('countWarning').innerText = warn;
+      document.getElementById('countNormal').innerText = norm;
+      document.getElementById('stationCountBadge').innerText = dataList.length;
+    }
+
+    function renderSensorList(dataList) {
+      const container = document.getElementById('sensorListContainer');
+      if (dataList.length === 0) {
+        container.innerHTML = `
+          <div class="py-16 text-center text-slate-400 text-sm md:text-base">
+            <i data-lucide="inbox" class="w-10 h-10 mx-auto mb-2 stroke-1 text-slate-300"></i>
+            ยังไม่มีข้อมูลจุดตรวจวัดในระบบ
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      container.innerHTML = dataList.map(st => {
+        const statusKey = determineStatus(st);
+        const cfg = getStatusConfig(statusKey);
+
+        return `
+          <div 
+            onclick="focusStation('${st.id}')"
+            class="bg-white rounded-2xl p-4 border border-slate-200/80 hover:shadow-md ${cfg.borderHover} cursor-pointer transition-all duration-150 group"
+          >
+            <!-- แถวบน: ชื่อและสถานะ -->
+            <div class="flex items-start justify-between gap-2.5">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <span class="w-3.5 h-3.5 rounded-full ${cfg.dotClass} shrink-0"></span>
+                <span class="text-sm md:text-base font-bold text-slate-900 group-hover:text-brand-600 transition-colors truncate">${st.name}</span>
+              </div>
+              <span class="text-xs md:text-sm font-bold px-2.5 py-0.5 rounded-full border ${cfg.badgeClass} shrink-0">
+                ${cfg.label}
+              </span>
+            </div>
+
+            <!-- แถวกลาง: ข้อมูลระดับน้ำ -->
+            <div class="flex items-end justify-between mt-3 pt-2.5 border-t border-slate-100">
+              <div class="text-xs md:text-sm text-slate-500 font-medium">
+                <span class="inline-block px-2 py-0.5 bg-slate-100 rounded text-slate-600 font-semibold mr-1.5">${st.type}</span>
+                <span>ห่างผิวน้ำ: <b class="text-slate-700">${st.distanceCm !== null ? `${st.distanceCm} cm` : '-'}</b></span>
+              </div>
+              <div class="text-right">
+                <span class="text-lg md:text-xl font-extrabold" style="color: ${cfg.hex};">${st.waterDepthCm} <span class="text-xs md:text-sm font-bold">cm</span></span>
+              </div>
+            </div>
+
+            <!-- แถวล่าง: ปุ่มดูประวัติ และ เวลาอัปเดต -->
+            <div class="flex items-center justify-between mt-3.5 pt-2.5 border-t border-slate-100">
+              <a 
+                href="/history.html?device=${st.id}" 
+                onclick="event.stopPropagation();"
+                class="inline-flex items-center gap-1.5 py-1.5 px-3 rounded-xl bg-orange-50 hover:bg-orange-100 text-brand-600 border border-brand-200/80 text-xs md:text-sm font-bold transition shadow-xs"
+              >
+                <i data-lucide="line-chart" class="w-3.5 h-3.5 md:w-4 md:h-4"></i>
+                <span>ดูประวัติ & กราฟ</span>
+              </a>
+
+              <span class="text-xs text-slate-400 font-medium">
+                ${st.updatedAt}
+              </span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    window.focusStation = function(stationId) {
+      const marker = markersMap.get(stationId);
+      const target = stations.find(s => s.id === stationId);
+      if (marker && target && target.lat !== null && target.lng !== null) {
+        if (window.innerWidth < 768) {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        map.flyTo([target.lat, target.lng], 15, { duration: 1.2 });
+        setTimeout(() => marker.openPopup(), 1200);
+      }
+    };
+
+    const searchInput = document.getElementById('mapSearchInput');
+    const clearBtn = document.getElementById('clearSearchBtn');
+
+    searchInput.addEventListener('input', (e) => {
+      const query = e.target.value.trim().toLowerCase();
+      if (query) {
+        clearBtn.classList.remove('hidden');
+      } else {
+        clearBtn.classList.add('hidden');
+      }
+
+      const filtered = stations.filter(s => 
+        s.name.toLowerCase().includes(query) || 
+        (s.type && s.type.toLowerCase().includes(query)) ||
+        s.id.toLowerCase().includes(query)
+      );
+
+      renderSensorList(filtered);
+    });
+
+    clearBtn.addEventListener('click', () => {
+      searchInput.value = '';
+      clearBtn.classList.add('hidden');
+      renderSensorList(stations);
+    });
+
+    async function syncRealData() {
+      try {
+        const res = await fetch('/api/devices');
+        if (!res.ok) return;
+        const apiDevices = await res.json();
+
+        if (Array.isArray(apiDevices)) {
+          stations = apiDevices.map(dev => {
+            const t = dev.latest_telemetry;
+            const depth = (t && t.water_depth_cm !== null && t.water_depth_cm !== undefined) ? t.water_depth_cm : 0;
+            const rawDist = (t && t.distance_cm !== undefined) ? t.distance_cm : null;
+
+            return {
+              id: dev.device_id,
+              name: dev.device_name || `จุดวัด ${dev.device_id}`,
+              type: dev.location_type || 'ถนน',
+              lat: (dev.latitude !== null && dev.latitude !== undefined) ? parseFloat(dev.latitude) : null,
+              lng: (dev.longitude !== null && dev.longitude !== undefined) ? parseFloat(dev.longitude) : null,
+              waterDepthCm: depth,
+              distanceCm: rawDist,
+              tankHeightCm: dev.tank_height_cm || 83,
+
+              warningThreshold: dev.warning_threshold_cm !== undefined ? dev.warning_threshold_cm : null,
+              criticalThreshold: dev.critical_threshold_cm !== undefined ? dev.critical_threshold_cm : null,
+
+              configuredStatus: dev.status_level || null,
+              imageUrl: dev.image_url || '',
+              updatedAt: t ? new Date(t.created_at).toLocaleTimeString('th-TH') : 'ยังไม่มีข้อมูล',
+              battery: t ? t.battery_percent : null,
+              rssi: t && t.signal ? t.signal.rssi : null
+            };
+          });
+
+          renderMarkers(stations);
+          renderSensorList(stations);
+          updateMetrics(stations);
+        }
+      } catch (err) {
+        console.error('Error fetching real data:', err);
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      initMap();
+
+      const clockEl = document.getElementById('liveClock');
+      function tick() {
+        const now = new Date();
+        clockEl.innerText = now.toLocaleDateString('th-TH', { 
+          day: 'numeric', month: 'short', year: 'numeric', 
+          hour: '2-digit', minute: '2-digit', second: '2-digit' 
+        });
+      }
+      tick();
+      setInterval(tick, 1000);
+
+      syncRealData();
+      setInterval(syncRealData, 5000);
+    });
+  </script>
+</body>
+</html>
