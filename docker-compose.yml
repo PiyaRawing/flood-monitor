@@ -20,7 +20,7 @@ services:
     container_name: water-level-api
     restart: always
     ports:
-      - "5000:5000"
+      - "5002:5000"
     environment:
       PORT: 5000
       MONGO_URI: mongodb://admin:password123@mongodb:27017/water_monitoring?authSource=admin
