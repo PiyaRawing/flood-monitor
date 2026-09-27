@@ -9,6 +9,6 @@ services:
     environment:
       PORT: 5000
       # ใส่ IP ของ Server ที่รัน MongoDB
-      MONGO_URI: mongodb://admin:password123@192.168.1.50:27017/water_monitoring?authSource=admin
+      MONGO_URI: mongodb://admin:password123@192.168.0.60:27017/water_monitoring?authSource=admin
     volumes:
       - ./public:/app/public   # เชื่อมโฟลเดอร์ public แก้ไฟล์ปุ๊บ หน้าเว็บเปลี่ยนปั๊บ
