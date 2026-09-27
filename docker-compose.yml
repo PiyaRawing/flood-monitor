@@ -8,6 +8,8 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: password123
+    ports:
+      - "27017:27017"   # <-- ต้องมีบรรทัดนี้เพื่อเปิดให้เครื่องภายนอกต่อเข้ามาได้
     volumes:
       - mongo_data:/data/db
     networks:

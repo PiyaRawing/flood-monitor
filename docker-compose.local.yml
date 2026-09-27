@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  backend-dev:
+    build: .
+    container_name: water-level-local-dev
+    ports:
+      - "5050:5000"   # ใช้พอร์ต 5050 เพื่อไม่ให้ชนกับงานอื่น
+    environment:
+      PORT: 5000
+      # ใส่ IP ของ Server ที่รัน MongoDB
+      MONGO_URI: mongodb://admin:password123@192.168.1.50:27017/water_monitoring?authSource=admin
+    volumes:
+      - ./public:/app/public   # เชื่อมโฟลเดอร์ public แก้ไฟล์ปุ๊บ หน้าเว็บเปลี่ยนปั๊บ
