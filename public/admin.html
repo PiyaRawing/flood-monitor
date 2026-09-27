@@ -271,13 +271,19 @@
       </div>
 
       <!-- ปุ่มบันทึก -->
-      <div class="pt-3">
+      <div class="flex items-center gap-3 pt-3">
         <button type="submit" id="btnSubmit"
-          class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3.5 px-6 rounded-2xl text-sm md:text-base transition duration-150 shadow-md shadow-brand-500/20 flex items-center justify-center gap-2">
-          <i data-lucide="save" class="w-5 h-5"></i>
-          <span>บันทึกการตั้งค่าจุดตรวจวัด</span>
+            class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-bold py-3.5 px-6 rounded-2xl text-sm md:text-base transition duration-150 shadow-md shadow-brand-500/20 flex items-center justify-center gap-2">
+            <i data-lucide="save" class="w-5 h-5"></i>
+            <span>บันทึกการตั้งค่าจุดตรวจวัด</span>
         </button>
-      </div>
+        
+        <button type="button" onclick="deleteCurrentDevice()"
+            class="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold py-3.5 px-5 rounded-2xl text-sm md:text-base transition flex items-center gap-2">
+            <i data-lucide="trash-2" class="w-5 h-5"></i>
+            <span>ลบ</span>
+        </button>
+    </div>
 
       <div id="saveAlert" class="hidden text-sm md:text-base p-4 rounded-2xl bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold flex items-center gap-2">
         <i data-lucide="check-circle" class="w-5 h-5 text-emerald-600"></i>
@@ -524,6 +530,23 @@
       lucide.createIcons();
       checkAuth();
     });
+
+    window.deleteCurrentDevice = async function() {
+    const targetId = deviceIdInput.value.trim();
+    if (!confirm(`คุณต้องการลบจุดวัด "${targetId}" ใช่หรือไม่? (ข้อมูลย้อนหลังทั้งหมดจะถูกลบด้วย)`)) return;
+
+    try {
+        const res = await fetch(`/api/devices/${encodeURIComponent(targetId)}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+        alert('ลบข้อมูลเรียบร้อยแล้ว');
+        loadAllDevices();
+        }
+    } catch (err) {
+        alert('เกิดข้อผิดพลาดในการลบ');
+    }
+    };
+
   </script>
 </body>
 </html>

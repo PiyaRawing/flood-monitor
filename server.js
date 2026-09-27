@@ -85,6 +85,12 @@ app.post('/api/telemetry', async (req, res) => {
       battery_voltage, battery_percent, status, rssi, snr
     } = req.body;
 
+    // กรองขยะ: device_id ต้องเป็น A-Z, 0-9, ขีด (-) เท่านั้น ความยาว 3-12 ตัวอักษร
+    const validIdRegex = /^[A-Za-z0-9_-]{3,12}$/;
+    if (!device_id || !validIdRegex.test(device_id)) {
+      return res.status(400).json({ error: 'Invalid or corrupted device_id' });
+    }
+
     if (!device_id || distance_cm === undefined) {
       return res.status(400).json({ error: 'device_id and distance_cm are required.' });
     }
@@ -213,6 +219,18 @@ app.get('/api/telemetry/history/:device_id', async (req, res) => {
     res.json(logs);
   } catch (err) {
     console.error('History fetch error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ลบ Device และ Telemetry ของอุปกรณ์นั้น
+app.delete('/api/devices/:device_id', async (req, res) => {
+  try {
+    const { device_id } = req.params;
+    await DeviceConfig.deleteOne({ device_id });
+    await Telemetry.deleteMany({ device_id });
+    res.json({ success: true, message: `Deleted ${device_id}` });
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
