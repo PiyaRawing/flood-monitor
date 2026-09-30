@@ -101,7 +101,7 @@
       </div>
     </div>
 
-    <!-- ส่วนที่ 1: แสดงข้อมูลสถิติล่าสุด (Metrics Cards 5 ช่อง รวมน้ำสูงสุด 7 วัน) -->
+    <!-- ส่วนที่ 1: แสดงข้อมูลสถิติล่าสุด (Metrics Cards 5 ช่อง) -->
     <div class="grid grid-cols-2 lg:grid-cols-5 gap-3.5 md:gap-4">
       <!-- 1. ระดับน้ำปัจจุบัน -->
       <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
@@ -118,7 +118,7 @@
         </div>
       </div>
 
-      <!-- 2. น้ำสูงสุดในรอบ 7 วัน (ข้อ 4) -->
+      <!-- 2. น้ำสูงสุดในรอบ 7 วัน -->
       <div class="bg-gradient-to-br from-white to-amber-50/50 p-4 rounded-2xl border border-amber-200/80 shadow-xs flex flex-col justify-between">
         <div class="flex items-center justify-between text-amber-700">
           <span class="text-xs font-bold">สูงสุดรอบ 7 วัน</span>
@@ -238,6 +238,22 @@
       </div>
     </div>
 
+    <!-- กล่องกราฟที่ 3: กราฟสัญญาณ LoRa (Signal RSSI & SNR Chart) -->
+    <div class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-slate-200/80 space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-2">
+          <i data-lucide="signal" class="w-5 h-5 text-indigo-600"></i>
+          <h3 class="text-base md:text-lg font-bold text-slate-900">คุณภาพสัญญาณ LoRa (RSSI & SNR)</h3>
+        </div>
+        <span class="text-xs text-slate-400 font-medium">ความแรงสัญญาณ (RSSI) และอัตราส่วนสัญญาณต่อสัญญาณรบกวน (SNR)</span>
+      </div>
+
+      <!-- Canvas กราฟสัญญาณ -->
+      <div class="relative h-64 md:h-72 w-full">
+        <canvas id="signalChart"></canvas>
+      </div>
+    </div>
+
   </main>
 
   <!-- ================= 3. NAVIGATION ล่างสุด ================= -->
@@ -264,10 +280,10 @@
     let currentTimeframe = '24h';
     let waterChart = null;
     let batteryChart = null;
+    let signalChart = null;
     let allDevices = [];
     let currentProcessedLogs = [];
 
-    // ดึง device จาก Query Param
     const urlParams = new URLSearchParams(window.location.search);
     const paramDevice = urlParams.get('device');
 
@@ -333,9 +349,7 @@
         }
         currentDeviceId = select.value;
 
-        // อัปเดต URL ครั้งแรกให้ตรงฟอร์ม
         updateBrowserUrl(currentDeviceId);
-
         updateDeviceInfoUI();
         loadHistoryData();
         load7DaysMaxRecord();
@@ -344,7 +358,6 @@
       }
     }
 
-    // ฟังก์ชันอัปเดต URL โดยไม่รีเฟรชหน้า (ข้อ 1)
     function updateBrowserUrl(devId) {
       if (!devId) return;
       const newUrl = `${window.location.pathname}?device=${encodeURIComponent(devId)}`;
@@ -406,7 +419,7 @@
     }
 
     // -------------------------------------------------------------
-    // 2. ฟังก์ชัน Downsample จับกลุ่มข้อมูลตามช่วงเวลา (ข้อ 2)
+    // 2. ฟังก์ชัน Downsample ข้อมูล
     // -------------------------------------------------------------
     function downsampleLogs(rawLogs, tf) {
       if (!rawLogs || rawLogs.length === 0) return [];
@@ -415,20 +428,20 @@
       let badgeText = 'ข้อมูลตามเวลาจริง';
 
       if (tf === '24h') {
-        bucketMinutes = 10; // จับกลุ่มทุก 10 นาที
+        bucketMinutes = 10;
         badgeText = 'แสดงข้อมูลเฉลี่ยทุก 10 นาที';
       } else if (tf === '7d') {
-        bucketMinutes = 60; // จับกลุ่มทุก 1 ชั่วโมง
+        bucketMinutes = 60;
         badgeText = 'แสดงข้อมูลเฉลี่ยทุก 1 ชั่วโมง';
       } else if (tf === '30d') {
-        bucketMinutes = 240; // จับกลุ่มทุก 4 ชั่วโมง
+        bucketMinutes = 240;
         badgeText = 'แสดงข้อมูลเฉลี่ยทุก 4 ชั่วโมง';
       }
 
       document.getElementById('intervalBadge').innerText = `ช่วงเวลาข้อมูล: ${badgeText}`;
 
       if (bucketMinutes === 0) {
-        return rawLogs; // ถ้าเป็น 1h หรือ 6h ให้แสดงข้อมูลสดเดิม
+        return rawLogs;
       }
 
       const bucketMs = bucketMinutes * 60 * 1000;
@@ -438,11 +451,18 @@
         const time = new Date(log.created_at).getTime();
         const bucketKey = Math.floor(time / bucketMs) * bucketMs;
 
+        const rssiVal = (log.signal && log.signal.rssi !== undefined) ? Number(log.signal.rssi) : ((log.rssi !== undefined) ? Number(log.rssi) : null);
+        const snrVal = (log.signal && log.signal.snr !== undefined) ? Number(log.signal.snr) : ((log.snr !== undefined) ? Number(log.snr) : null);
+
         if (!buckets.has(bucketKey)) {
           buckets.set(bucketKey, {
             count: 0,
             sumDepth: 0,
             sumBattery: 0,
+            rssiCount: 0,
+            sumRssi: 0,
+            snrCount: 0,
+            sumSnr: 0,
             latestLog: log
           });
         }
@@ -451,6 +471,16 @@
         b.count++;
         b.sumDepth += (log.water_depth_cm !== null && log.water_depth_cm !== undefined) ? Number(log.water_depth_cm) : 0;
         b.sumBattery += (log.battery_percent !== null && log.battery_percent !== undefined) ? Number(log.battery_percent) : 100;
+
+        if (rssiVal !== null && !isNaN(rssiVal)) {
+          b.rssiCount++;
+          b.sumRssi += rssiVal;
+        }
+        if (snrVal !== null && !isNaN(snrVal)) {
+          b.snrCount++;
+          b.sumSnr += snrVal;
+        }
+
         b.latestLog = log;
       });
 
@@ -462,18 +492,21 @@
           battery_percent: Math.round(val.sumBattery / val.count),
           distance_cm: val.latestLog.distance_cm,
           battery_voltage: val.latestLog.battery_voltage,
-          signal: val.latestLog.signal,
-          rssi: val.latestLog.rssi
+          signal: {
+            rssi: val.rssiCount > 0 ? Math.round(val.sumRssi / val.rssiCount) : null,
+            snr: val.snrCount > 0 ? Math.round((val.sumSnr / val.snrCount) * 10) / 10 : null
+          },
+          rssi: val.rssiCount > 0 ? Math.round(val.sumRssi / val.rssiCount) : null,
+          snr: val.snrCount > 0 ? Math.round((val.sumSnr / val.snrCount) * 10) / 10 : null
         });
       });
 
-      // เรียงตามเวลาจากอดีตไปปัจจุบัน
       aggregated.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
       return aggregated;
     }
 
     // -------------------------------------------------------------
-    // 3. โหลดข้อมูลประวัติย้อนหลัง & เรนเดอร์กราฟ
+    // 3. โหลดประวัติย้อนหลัง & เรนเดอร์ทั้ง 3 กราฟ
     // -------------------------------------------------------------
     async function loadHistoryData() {
       if (!currentDeviceId) return;
@@ -481,23 +514,22 @@
         const res = await fetch(`/api/telemetry/history/${currentDeviceId}?timeframe=${currentTimeframe}`);
         const rawLogs = await res.json();
 
-        // อัปเดตการ์ดสถิติปัจจุบันจาก log ตัวท้ายสุดที่เป็น raw
         updateCurrentMetrics(rawLogs);
 
-        // นำข้อมูลเข้าตัวกรอง Downsample ตาม Timeframe
         currentProcessedLogs = downsampleLogs(rawLogs, currentTimeframe);
 
         document.getElementById('recordCount').innerText = `${currentProcessedLogs.length} จุดข้อมูล`;
 
         renderWaterChart(currentProcessedLogs);
         renderBatteryChart(currentProcessedLogs);
+        renderSignalChart(currentProcessedLogs);
       } catch (err) {
         console.error(err);
       }
     }
 
     // -------------------------------------------------------------
-    // 4. ดึงข้อมูลน้ำสูงสุดในรอบ 7 วัน (ข้อ 4)
+    // 4. ดึงสถิติน้ำสูงสุดรอบ 7 วัน
     // -------------------------------------------------------------
     async function load7DaysMaxRecord() {
       if (!currentDeviceId) return;
@@ -590,7 +622,7 @@
     }
 
     // -------------------------------------------------------------
-    // วาดกราฟระดับน้ำ
+    // กราฟที่ 1: กราฟระดับน้ำ
     // -------------------------------------------------------------
     function renderWaterChart(logs) {
       const ctx = document.getElementById('waterChart').getContext('2d');
@@ -696,7 +728,7 @@
     }
 
     // -------------------------------------------------------------
-    // 5. วาดกราฟแบตเตอรี่ (ข้อ 3)
+    // กราฟที่ 2: กราฟแบตเตอรี่
     // -------------------------------------------------------------
     function renderBatteryChart(logs) {
       const ctx = document.getElementById('batteryChart').getContext('2d');
@@ -761,6 +793,135 @@
       });
     }
 
+    // -------------------------------------------------------------
+    // กราฟที่ 3: กราฟสัญญาณ LoRa (RSSI & SNR)
+    // -------------------------------------------------------------
+    function renderSignalChart(logs) {
+      const ctx = document.getElementById('signalChart').getContext('2d');
+      
+      const labels = logs.map(l => {
+        const d = new Date(l.created_at);
+        if (currentTimeframe === '7d' || currentTimeframe === '30d') {
+          return `${d.getDate()}/${d.getMonth()+1} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+        }
+        return d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+      });
+
+      const rssiData = logs.map(l => {
+        if (l.signal && l.signal.rssi !== undefined && l.signal.rssi !== null) return l.signal.rssi;
+        if (l.rssi !== undefined && l.rssi !== null) return l.rssi;
+        return null;
+      });
+
+      const snrData = logs.map(l => {
+        if (l.signal && l.signal.snr !== undefined && l.signal.snr !== null) return l.signal.snr;
+        if (l.snr !== undefined && l.snr !== null) return l.snr;
+        return null;
+      });
+
+      if (signalChart) {
+        signalChart.destroy();
+      }
+
+      signalChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'RSSI (ความแรงสัญญาณ)',
+              data: rssiData,
+              borderColor: '#4f46e5',
+              backgroundColor: 'rgba(79, 70, 229, 0.08)',
+              borderWidth: 2,
+              fill: false,
+              tension: 0.2,
+              pointRadius: logs.length > 80 ? 0 : 2,
+              pointHoverRadius: 5,
+              yAxisID: 'y'
+            },
+            {
+              label: 'SNR (Signal-to-Noise)',
+              data: snrData,
+              borderColor: '#a855f7',
+              backgroundColor: 'transparent',
+              borderWidth: 1.5,
+              borderDash: [4, 3],
+              fill: false,
+              tension: 0.2,
+              pointRadius: 0,
+              pointHoverRadius: 4,
+              yAxisID: 'y1'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                font: { family: 'Noto Sans Thai', size: 12, weight: 'bold' },
+                padding: 14,
+                usePointStyle: true,
+                pointStyle: 'circle'
+              }
+            },
+            tooltip: {
+              titleFont: { family: 'Noto Sans Thai', size: 12, weight: 'bold' },
+              bodyFont: { family: 'Noto Sans Thai', size: 11 },
+              callbacks: {
+                label: (ctx) => {
+                  if (ctx.datasetIndex === 0) return ` RSSI: ${ctx.parsed.y} dBm`;
+                  return ` SNR: ${ctx.parsed.y} dB`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              ticks: { font: { family: 'Noto Sans Thai', size: 10 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 8 },
+              grid: { color: '#f8fafc' }
+            },
+            y: {
+              type: 'linear',
+              display: true,
+              position: 'left',
+              ticks: { 
+                font: { family: 'Noto Sans Thai', size: 11 },
+                callback: (v) => v + ' dBm' 
+              },
+              grid: { color: '#f1f5f9' },
+              title: {
+                display: true,
+                text: 'RSSI (dBm)',
+                font: { family: 'Noto Sans Thai', size: 11, weight: 'bold' },
+                color: '#4f46e5'
+              }
+            },
+            y1: {
+              type: 'linear',
+              display: true,
+              position: 'right',
+              ticks: { 
+                font: { family: 'Noto Sans Thai', size: 11 },
+                callback: (v) => v + ' dB' 
+              },
+              grid: { drawOnChartArea: false },
+              title: {
+                display: true,
+                text: 'SNR (dB)',
+                font: { family: 'Noto Sans Thai', size: 11, weight: 'bold' },
+                color: '#a855f7'
+              }
+            }
+          }
+        }
+      });
+    }
+
     function setTimeframe(tf) {
       currentTimeframe = tf;
       document.querySelectorAll('.tf-btn').forEach(btn => {
@@ -776,10 +937,10 @@
 
     document.getElementById('deviceSelect').addEventListener('change', (e) => {
       currentDeviceId = e.target.value;
-      updateBrowserUrl(currentDeviceId); // เปลี่ยน URL ตามจุดที่เลือก (ข้อ 1)
+      updateBrowserUrl(currentDeviceId);
       updateDeviceInfoUI();
       loadHistoryData();
-      load7DaysMaxRecord(); // โหลดค่าน้ำสูงสุด 7 วันของจุดใหม่ (ข้อ 4)
+      load7DaysMaxRecord();
     });
 
     window.addEventListener('DOMContentLoaded', () => {
