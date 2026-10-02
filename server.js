@@ -55,14 +55,13 @@ const DeviceConfigSchema = new mongoose.Schema({
 
 const TelemetrySchema = new mongoose.Schema({
   device_id: { type: String, required: true, index: true },
-  gateway_id: { type: String },
-  packet_id: { type: Number },
+  gateway_id: { type: String, default: 'GW-001' },
+  packet_id: { type: Number }, // เพิ่มฟิลด์นี้
   distance_cm: { type: Number, required: true },
-  water_depth_cm: { type: Number, default: null },
-  water_percent: { type: Number, default: null },
+  water_depth_cm: { type: Number },
   battery_voltage: { type: Number },
   battery_percent: { type: Number },
-  sensor_status: { type: String, default: 'OK' },
+  status: { type: String, default: 'OK' },
   signal: {
     rssi: { type: Number },
     snr: { type: Number }
@@ -80,55 +79,97 @@ const Telemetry = mongoose.model('Telemetry', TelemetrySchema);
 // 1. รับข้อมูลจาก Gateway
 app.post('/api/telemetry', async (req, res) => {
   try {
-    const {
-      device_id, gateway_id, packet_id, distance_cm,
-      battery_voltage, battery_percent, status, rssi, snr
+    const { 
+      device_id, 
+      gateway_id, 
+      packet_id, 
+      distance_cm, 
+      battery_voltage, 
+      battery_percent, 
+      status, 
+      rssi, 
+      snr 
     } = req.body;
 
-    // กรองขยะ: device_id ต้องเป็น A-Z, 0-9, ขีด (-) เท่านั้น ความยาว 3-12 ตัวอักษร
+    // กรองชื่อ device_id ป้องกันขยะ
     const validIdRegex = /^[A-Za-z0-9_-]{3,12}$/;
     if (!device_id || !validIdRegex.test(device_id)) {
-      return res.status(400).json({ error: 'Invalid or corrupted device_id' });
+      return res.status(400).json({ error: 'Invalid device_id' });
     }
 
-    if (!device_id || distance_cm === undefined) {
-      return res.status(400).json({ error: 'device_id and distance_cm are required.' });
+    if (distance_cm === undefined || isNaN(distance_cm)) {
+      return res.status(400).json({ error: 'Valid distance_cm is required' });
     }
 
+    // --- จุดกันซ้ำ (Server Deduplication) ---
+    // ถ้ามี packet_id ส่งมา เช็คว่าเพิ่งบันทึก packet_id เดียวกันไปในรอบ 60 วินาทีหรือไม่
+    if (packet_id !== undefined && packet_id !== null) {
+      const oneMinuteAgo = new Date(Date.now() - 60000);
+      const duplicate = await Telemetry.findOne({
+        device_id,
+        packet_id: Number(packet_id),
+        created_at: { $gte: oneMinuteAgo }
+      });
+
+      if (duplicate) {
+        // ตอบกลับ 200 ปกติ แต่ไม่บันทึกลง Database ซ้ำ
+        return res.status(200).json({ 
+          success: true, 
+          message: 'Duplicate packet ignored', 
+          telemetry_id: duplicate._id 
+        });
+      }
+    }
+
+    // ค้นหาหรือสร้าง Config ของอุปกรณ์
     let config = await DeviceConfig.findOne({ device_id });
     if (!config) {
-      config = await DeviceConfig.create({ device_id, device_name: `โหนด ${device_id}` });
+      config = await DeviceConfig.create({
+        device_id,
+        device_name: `โหนด ${device_id}`,
+        location_type: 'ถนน',
+        tank_height_cm: 83.0,
+        warning_threshold_cm: 25.0,
+        critical_threshold_cm: 50.0
+      });
     }
 
-    let waterDepthCm = null;
-    let waterPercent = null;
+    // คำนวณความสูงน้ำ
+    let calculatedDepth = 0;
+    const rawDist = Number(distance_cm);
 
-    if (status === 'OK' && distance_cm > 0) {
-      const maxDistance = config.tank_height_cm + config.sensor_offset_cm;
-      waterDepthCm = maxDistance - distance_cm;
-      if (waterDepthCm < 0) waterDepthCm = 0;
-      if (waterDepthCm > config.tank_height_cm) waterDepthCm = config.tank_height_cm;
-
-      waterPercent = (waterDepthCm / config.tank_height_cm) * 100.0;
-      waterDepthCm = parseFloat(waterDepthCm.toFixed(1));
-      waterPercent = parseFloat(waterPercent.toFixed(1));
+    if (rawDist > 0) { // ถ้าไม่ใช่ -1 (Error)
+      const tankH = config.tank_height_cm || 83.0;
+      calculatedDepth = Math.max(0, Math.round((tankH - rawDist) * 10) / 10);
     }
 
-    const doc = await Telemetry.create({
+    // บันทึก Telemetry
+    const telemetry = new Telemetry({
       device_id,
-      gateway_id,
-      packet_id,
-      distance_cm,
-      water_depth_cm: waterDepthCm,
-      water_percent: waterPercent,
-      battery_voltage,
-      battery_percent,
-      sensor_status: status || 'OK',
-      signal: { rssi, snr }
+      gateway_id: gateway_id || 'GW-001',
+      packet_id: packet_id !== undefined ? Number(packet_id) : undefined,
+      distance_cm: rawDist,
+      water_depth_cm: rawDist > 0 ? calculatedDepth : null,
+      battery_voltage: battery_voltage ? Number(battery_voltage) : undefined,
+      battery_percent: battery_percent ? Number(battery_percent) : undefined,
+      status: status || 'OK',
+      signal: {
+        rssi: rssi ? Number(rssi) : undefined,
+        snr: snr ? Number(snr) : undefined
+      },
+      created_at: new Date()
     });
 
-    res.status(201).json({ success: true, message: 'Telemetry logged successfully', data: doc });
+    await telemetry.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Telemetry saved successfully',
+      data: telemetry
+    });
+
   } catch (err) {
+    console.error('Telemetry Error:', err);
     res.status(500).json({ error: err.message });
   }
 });
