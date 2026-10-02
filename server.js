@@ -2,61 +2,40 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
-const fs = require('fs');
-const multer = require('multer');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://admin:password123@mongodb:27017/water_monitoring?authSource=admin';
-
-// ตรวจสอบและสร้างโฟลเดอร์สำหรับเก็บรูปภาพ
-const uploadDir = path.join(__dirname, 'public', 'uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-// ตั้งค่าที่จัดเก็บไฟล์รูปภาพด้วย Multer
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'point-' + uniqueSuffix + ext);
-  }
-});
-const upload = multer({ storage });
+const PORT = process.env.PORT || 5002;
 
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
-app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
-// --------------------------------------------------
-// MongoDB Schemas
-// --------------------------------------------------
+
+// เชื่อมต่อ MongoDB
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/lora_flood_db';
+mongoose.connect(MONGO_URI)
+  .then(() => console.log('MongoDB Connected successfully.'))
+  .catch(err => console.error('MongoDB Connection Error:', err));
+
+// ==========================================
+// Schemas & Models
+// ==========================================
 const DeviceConfigSchema = new mongoose.Schema({
   device_id: { type: String, required: true, unique: true },
-  device_name: { type: String, default: 'จุดวัดระดับน้ำ' },
-  location_type: { 
-    type: String, 
-    enum: ['ถนน', 'ท่อน้ำ', 'คลอง'], 
-    default: 'ถนน' 
-  },
-  latitude: { type: Number, default: null },
-  longitude: { type: Number, default: null },
-  image_url: { type: String, default: '' },
+  device_name: { type: String, default: '' },
+  location_type: { type: String, default: 'ถนน' },
+  latitude: { type: Number, default: 13.606 },
+  longitude: { type: Number, default: 100.702 },
   tank_height_cm: { type: Number, default: 83.0 },
-  sensor_offset_cm: { type: Number, default: 0.0 },
-  warning_threshold_cm: { type: Number, default: null }, // เกณฑ์เตือนภัย (cm)
-  critical_threshold_cm: { type: Number, default: null }, // เกณฑ์วิกฤต (cm)
-  updated_at: { type: Date, default: Date.now }
-});
+  warning_threshold_cm: { type: Number, default: 25.0 },
+  critical_threshold_cm: { type: Number, default: 50.0 },
+  image_url: { type: String, default: '' }
+}, { timestamps: true });
 
 const TelemetrySchema = new mongoose.Schema({
   device_id: { type: String, required: true, index: true },
   gateway_id: { type: String, default: 'GW-001' },
-  packet_id: { type: Number }, // เพิ่มฟิลด์นี้
+  packet_id: { type: Number },
+  hops_path: { type: String, default: 'DIRECT' }, // เส้นทาง Mesh Trace
   distance_cm: { type: Number, required: true },
   water_depth_cm: { type: Number },
   battery_voltage: { type: Number },
@@ -72,17 +51,18 @@ const TelemetrySchema = new mongoose.Schema({
 const DeviceConfig = mongoose.model('DeviceConfig', DeviceConfigSchema);
 const Telemetry = mongoose.model('Telemetry', TelemetrySchema);
 
-// --------------------------------------------------
-// API Endpoints
-// --------------------------------------------------
+// ==========================================
+// API Routes
+// ==========================================
 
-// 1. รับข้อมูลจาก Gateway
+// 1. รับข้อมูล Telemetry จาก Gateway
 app.post('/api/telemetry', async (req, res) => {
   try {
     const { 
       device_id, 
       gateway_id, 
       packet_id, 
+      hops_path, 
       distance_cm, 
       battery_voltage, 
       battery_percent, 
@@ -91,7 +71,6 @@ app.post('/api/telemetry', async (req, res) => {
       snr 
     } = req.body;
 
-    // กรองชื่อ device_id ป้องกันขยะ
     const validIdRegex = /^[A-Za-z0-9_-]{3,12}$/;
     if (!device_id || !validIdRegex.test(device_id)) {
       return res.status(400).json({ error: 'Invalid device_id' });
@@ -101,8 +80,7 @@ app.post('/api/telemetry', async (req, res) => {
       return res.status(400).json({ error: 'Valid distance_cm is required' });
     }
 
-    // --- จุดกันซ้ำ (Server Deduplication) ---
-    // ถ้ามี packet_id ส่งมา เช็คว่าเพิ่งบันทึก packet_id เดียวกันไปในรอบ 60 วินาทีหรือไม่
+    // กรองข้อมูลซ้ำในระดับ Server
     if (packet_id !== undefined && packet_id !== null) {
       const oneMinuteAgo = new Date(Date.now() - 60000);
       const duplicate = await Telemetry.findOne({
@@ -112,7 +90,6 @@ app.post('/api/telemetry', async (req, res) => {
       });
 
       if (duplicate) {
-        // ตอบกลับ 200 ปกติ แต่ไม่บันทึกลง Database ซ้ำ
         return res.status(200).json({ 
           success: true, 
           message: 'Duplicate packet ignored', 
@@ -121,12 +98,12 @@ app.post('/api/telemetry', async (req, res) => {
       }
     }
 
-    // ค้นหาหรือสร้าง Config ของอุปกรณ์
+    // โหลดหรือสร้าง Config อุปกรณ์
     let config = await DeviceConfig.findOne({ device_id });
     if (!config) {
       config = await DeviceConfig.create({
         device_id,
-        device_name: `โหนด ${device_id}`,
+        device_name: `จุดวัด ${device_id}`,
         location_type: 'ถนน',
         tank_height_cm: 83.0,
         warning_threshold_cm: 25.0,
@@ -137,17 +114,16 @@ app.post('/api/telemetry', async (req, res) => {
     // คำนวณความสูงน้ำ
     let calculatedDepth = 0;
     const rawDist = Number(distance_cm);
-
-    if (rawDist > 0) { // ถ้าไม่ใช่ -1 (Error)
+    if (rawDist > 0) {
       const tankH = config.tank_height_cm || 83.0;
       calculatedDepth = Math.max(0, Math.round((tankH - rawDist) * 10) / 10);
     }
 
-    // บันทึก Telemetry
     const telemetry = new Telemetry({
       device_id,
       gateway_id: gateway_id || 'GW-001',
       packet_id: packet_id !== undefined ? Number(packet_id) : undefined,
+      hops_path: hops_path || device_id,
       distance_cm: rawDist,
       water_depth_cm: rawDist > 0 ? calculatedDepth : null,
       battery_voltage: battery_voltage ? Number(battery_voltage) : undefined,
@@ -162,26 +138,23 @@ app.post('/api/telemetry', async (req, res) => {
 
     await telemetry.save();
 
-    res.status(201).json({
-      success: true,
-      message: 'Telemetry saved successfully',
-      data: telemetry
-    });
-
+    res.status(201).json({ success: true, message: 'Saved successfully', data: telemetry });
   } catch (err) {
     console.error('Telemetry Error:', err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// 2. ดึงรายการ Device ทั้งหมด
+// 2. ดึงรายการจุดวัดพร้อมสถานะล่าสุด
 app.get('/api/devices', async (req, res) => {
   try {
-    const configs = await DeviceConfig.find().lean();
-    const result = await Promise.all(configs.map(async (cfg) => {
-      const latest = await Telemetry.findOne({ device_id: cfg.device_id }).sort({ created_at: -1 }).lean();
+    const devices = await DeviceConfig.find().lean();
+    const result = await Promise.all(devices.map(async (dev) => {
+      const latest = await Telemetry.findOne({ device_id: dev.device_id })
+        .sort({ created_at: -1 })
+        .lean();
       return {
-        ...cfg,
+        ...dev,
         latest_telemetry: latest || null
       };
     }));
@@ -191,95 +164,29 @@ app.get('/api/devices', async (req, res) => {
   }
 });
 
-// 3. บันทึก / อัปเดตข้อมูล Config พร้อมรองรับอัปโหลดรูปภาพ
-app.post('/api/config', upload.single('image'), async (req, res) => {
+// 3. ดึงประวัติย้อนหลังตาม Timeframe
+app.get('/api/telemetry/history/:deviceId', async (req, res) => {
   try {
-    const { 
-      device_id, 
-      device_name, 
-      location_type, 
-      latitude, 
-      longitude, 
-      tank_height_cm, 
-      sensor_offset_cm,
-      warning_threshold_cm,
-      critical_threshold_cm
-    } = req.body;
+    const { deviceId } = req.params;
+    const { timeframe } = req.query;
 
-    const updateData = {
-      device_name,
-      location_type: location_type || 'ถนน',
-      latitude: latitude ? parseFloat(latitude) : null,
-      longitude: longitude ? parseFloat(longitude) : null,
-      tank_height_cm: parseFloat(tank_height_cm),
-      sensor_offset_cm: parseFloat(sensor_offset_cm),
-      warning_threshold_cm: warning_threshold_cm !== '' && warning_threshold_cm !== undefined && warning_threshold_cm !== null ? parseFloat(warning_threshold_cm) : null,
-      critical_threshold_cm: critical_threshold_cm !== '' && critical_threshold_cm !== undefined && critical_threshold_cm !== null ? parseFloat(critical_threshold_cm) : null,
-      updated_at: new Date()
-    };
+    let timeLimit = new Date(Date.now() - 24 * 60 * 60 * 1000); // ค่าเริ่มต้น 24h
+    if (timeframe === '1h') timeLimit = new Date(Date.now() - 60 * 60 * 1000);
+    else if (timeframe === '6h') timeLimit = new Date(Date.now() - 6 * 60 * 60 * 1000);
+    else if (timeframe === '7d') timeLimit = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    else if (timeframe === '30d') timeLimit = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-    if (req.file) {
-      updateData.image_url = `/uploads/${req.file.filename}`;
-    }
+    const history = await Telemetry.find({
+      device_id: deviceId,
+      created_at: { $gte: timeLimit }
+    }).sort({ created_at: 1 }).lean();
 
-    const config = await DeviceConfig.findOneAndUpdate(
-      { device_id },
-      updateData,
-      { upsert: true, new: true }
-    );
-
-    res.json({ success: true, config });
-  } catch (err) {
-    console.error('Config save error:', err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Endpoint สำหรับดึงประวัติย้อนหลังตามช่วงเวลา
-app.get('/api/telemetry/history/:device_id', async (req, res) => {
-  try {
-    const { device_id } = req.params;
-    const { timeframe = '24h' } = req.query;
-
-    let hoursAgo = 24;
-    if (timeframe === '1h') hoursAgo = 1;
-    else if (timeframe === '6h') hoursAgo = 6;
-    else if (timeframe === '24h') hoursAgo = 24;
-    else if (timeframe === '7d') hoursAgo = 24 * 7;
-    else if (timeframe === '30d') hoursAgo = 24 * 30;
-
-    const startTime = new Date(Date.now() - hoursAgo * 60 * 60 * 1000);
-
-    const logs = await Telemetry.find({
-      device_id,
-      created_at: { $gte: startTime }
-    })
-      .sort({ created_at: 1 })
-      .lean();
-
-    res.json(logs);
-  } catch (err) {
-    console.error('History fetch error:', err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ลบ Device และ Telemetry ของอุปกรณ์นั้น
-app.delete('/api/devices/:device_id', async (req, res) => {
-  try {
-    const { device_id } = req.params;
-    await DeviceConfig.deleteOne({ device_id });
-    await Telemetry.deleteMany({ device_id });
-    res.json({ success: true, message: `Deleted ${device_id}` });
+    res.json(history);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// เชื่อมต่อ MongoDB & Run
-mongoose.connect(MONGO_URI)
-  .then(() => {
-    console.log('Connected to MongoDB');
-    app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
-  })
-  .catch(err => console.error('MongoDB connection error:', err));
+app.listen(PORT, () => {
+  console.log(`Server listening on port ${PORT}`);
+});
