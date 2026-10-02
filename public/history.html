@@ -40,6 +40,9 @@
   </script>
   <style>
     body { font-family: 'Noto Sans Thai', sans-serif; }
+    .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scroll::-webkit-scrollbar-track { background: #f1f5f9; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800 antialiased flex flex-col min-h-screen pb-24">
@@ -52,7 +55,7 @@
       </div>
       <div>
         <h1 class="text-lg md:text-2xl font-bold text-slate-900 tracking-tight leading-tight">ข้อมูลย้อนหลัง & กราฟวิเคราะห์</h1>
-        <p class="text-sm md:text-base text-slate-500 font-medium mt-0.5">วิเคราะห์แนวโน้มระดับน้ำและสถานะจุดตรวจวัด</p>
+        <p class="text-sm md:text-base text-slate-500 font-medium mt-0.5">วิเคราะห์แนวโน้มระดับน้ำและสถานะเครือข่าย Mesh</p>
       </div>
     </div>
     <a href="/index.html" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-xs md:text-sm font-bold transition flex items-center gap-2">
@@ -163,18 +166,19 @@
         </div>
       </div>
 
-      <!-- 5. ความแรงสัญญาณ LoRa -->
+      <!-- 5. สัญญาณ LoRa & Mesh Path -->
       <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between col-span-2 lg:col-span-1">
         <div class="flex items-center justify-between text-slate-500">
-          <span class="text-xs font-bold">สัญญาณ LoRa</span>
-          <i data-lucide="signal" class="w-4 h-4 text-indigo-500"></i>
+          <span class="text-xs font-bold">สัญญาณ & เส้นทาง Mesh</span>
+          <i data-lucide="git-branch" class="w-4 h-4 text-indigo-500"></i>
         </div>
         <div class="mt-2 flex items-baseline gap-1.5">
           <span id="metricRssi" class="text-2xl md:text-3xl font-extrabold text-slate-900">-</span>
           <span class="text-xs font-bold text-slate-400">dBm</span>
         </div>
-        <div id="metricSnr" class="mt-2 text-[11px] text-slate-400">
-          SNR: - dB
+        <div class="mt-2 flex items-center justify-between">
+          <span id="metricSnr" class="text-[11px] text-slate-400">SNR: - dB</span>
+          <span id="metricMeshPath" class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-bold truncate max-w-[110px]">-</span>
         </div>
       </div>
     </div>
@@ -216,7 +220,6 @@
         </div>
       </div>
 
-      <!-- Canvas กราฟน้ำ -->
       <div class="relative h-80 md:h-[380px] w-full">
         <canvas id="waterChart"></canvas>
       </div>
@@ -232,7 +235,6 @@
         <span class="text-xs text-slate-400 font-medium">ติดตามสถานะพลังงานของโหนด</span>
       </div>
 
-      <!-- Canvas กราฟแบตเตอรี่ -->
       <div class="relative h-56 md:h-64 w-full">
         <canvas id="batteryChart"></canvas>
       </div>
@@ -248,9 +250,40 @@
         <span class="text-xs text-slate-400 font-medium">ความแรงสัญญาณ (RSSI) และอัตราส่วนสัญญาณต่อสัญญาณรบกวน (SNR)</span>
       </div>
 
-      <!-- Canvas กราฟสัญญาณ -->
       <div class="relative h-64 md:h-72 w-full">
         <canvas id="signalChart"></canvas>
+      </div>
+    </div>
+
+    <!-- ตารางบันทึกประวัติย้อนหลัง & เส้นทาง Mesh Trace -->
+    <div class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-slate-200/80 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-2">
+          <i data-lucide="table" class="w-5 h-5 text-slate-700"></i>
+          <h3 class="text-base md:text-lg font-bold text-slate-900">ตารางประวัติข้อมูลและเส้นทางทวนสัญญาณ (Mesh Path)</h3>
+        </div>
+        <span class="text-xs text-slate-400 font-medium">แสดงล่าสุด 30 รายการ</span>
+      </div>
+
+      <div class="overflow-x-auto custom-scroll">
+        <table class="w-full text-left text-xs md:text-sm text-slate-600">
+          <thead class="bg-slate-50 text-slate-700 font-bold uppercase text-[11px] border-b border-slate-200">
+            <tr>
+              <th class="py-3 px-3">เวลาที่บันทึก</th>
+              <th class="py-3 px-3">Packet ID</th>
+              <th class="py-3 px-3">ระดับน้ำ (cm)</th>
+              <th class="py-3 px-3">ระยะเซนเซอร์ (cm)</th>
+              <th class="py-3 px-3">แบตเตอรี่</th>
+              <th class="py-3 px-3">RSSI / SNR</th>
+              <th class="py-3 px-3">เส้นทางส่งข้อมูล (Mesh Trace)</th>
+            </tr>
+          </thead>
+          <tbody id="historyTableBody" class="divide-y divide-slate-100 font-medium">
+            <tr>
+              <td colspan="7" class="py-8 text-center text-slate-400">กำลังโหลดตารางประวัติ...</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
@@ -419,7 +452,7 @@
     }
 
     // -------------------------------------------------------------
-    // 2. ฟังก์ชัน Downsample ข้อมูล
+    // 2. ฟังก์ชัน Downsample ข้อมูลกราฟ
     // -------------------------------------------------------------
     function downsampleLogs(rawLogs, tf) {
       if (!rawLogs || rawLogs.length === 0) return [];
@@ -492,6 +525,7 @@
           battery_percent: Math.round(val.sumBattery / val.count),
           distance_cm: val.latestLog.distance_cm,
           battery_voltage: val.latestLog.battery_voltage,
+          hops_path: val.latestLog.hops_path || val.latestLog.device_id,
           signal: {
             rssi: val.rssiCount > 0 ? Math.round(val.sumRssi / val.rssiCount) : null,
             snr: val.snrCount > 0 ? Math.round((val.sumSnr / val.snrCount) * 10) / 10 : null
@@ -506,7 +540,7 @@
     }
 
     // -------------------------------------------------------------
-    // 3. โหลดประวัติย้อนหลัง & เรนเดอร์ทั้ง 3 กราฟ
+    // 3. โหลดประวัติย้อนหลัง & เรนเดอร์กราฟและตาราง
     // -------------------------------------------------------------
     async function loadHistoryData() {
       if (!currentDeviceId) return;
@@ -515,6 +549,7 @@
         const rawLogs = await res.json();
 
         updateCurrentMetrics(rawLogs);
+        renderHistoryTable(rawLogs);
 
         currentProcessedLogs = downsampleLogs(rawLogs, currentTimeframe);
 
@@ -580,6 +615,7 @@
         document.getElementById('metricBatteryVolt').innerText = 'แรงดัน: - V';
         document.getElementById('metricRssi').innerText = '-';
         document.getElementById('metricSnr').innerText = 'SNR: - dB';
+        document.getElementById('metricMeshPath').innerText = '-';
         document.getElementById('metricLastUpdated').innerText = 'ยังไม่มีข้อมูล';
         return;
       }
@@ -599,6 +635,19 @@
       const snr = (latest.signal && latest.signal.snr !== undefined) ? latest.signal.snr : (latest.snr || '-');
       document.getElementById('metricSnr').innerText = `SNR: ${snr} dB`;
 
+      // แสดงสถานะ Path บนการ์ด
+      const pathEl = document.getElementById('metricMeshPath');
+      const hops = latest.hops_path || latest.device_id;
+      if (hops && hops.includes('>')) {
+        pathEl.innerText = hops;
+        pathEl.className = 'text-[10px] font-mono px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold truncate max-w-[120px]';
+        pathEl.title = `Mesh Relay: ${hops}`;
+      } else {
+        pathEl.innerText = 'Direct Link';
+        pathEl.className = 'text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-bold';
+        pathEl.title = 'เชื่อมต่อตรงไปยัง Gateway';
+      }
+
       const dateObj = new Date(latest.created_at);
       document.getElementById('metricLastUpdated').innerText = dateObj.toLocaleDateString('th-TH', {
         day: 'numeric',
@@ -608,6 +657,50 @@
         minute: '2-digit',
         second: '2-digit'
       }) + ` (${getTimeAgo(dateObj)})`;
+    }
+
+    function renderHistoryTable(logs) {
+      const tbody = document.getElementById('historyTableBody');
+      if (!logs || logs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="py-8 text-center text-slate-400">ไม่พบประวัติข้อมูลในช่วงเวลานี้</td></tr>';
+        return;
+      }
+
+      // นำรายการล่าสุดมาแสดง 30 แถวแรก
+      const recentLogs = [...logs].reverse().slice(0, 30);
+
+      tbody.innerHTML = recentLogs.map(l => {
+        const d = new Date(l.created_at);
+        const timeStr = `${d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })} ${d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+        const rssi = (l.signal && l.signal.rssi !== undefined) ? l.signal.rssi : (l.rssi !== undefined ? l.rssi : '-');
+        const snr = (l.signal && l.signal.snr !== undefined) ? l.signal.snr : (l.snr !== undefined ? l.snr : '-');
+        
+        const path = l.hops_path || l.device_id;
+        const isRelayed = path && path.includes('>');
+        const pathBadge = isRelayed
+          ? `<span class="inline-flex items-center gap-1 font-mono text-[11px] px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold"><i data-lucide="git-merge" class="w-3 h-3"></i> ${path}</span>`
+          : `<span class="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 font-bold">Direct Link</span>`;
+
+        return `
+          <tr class="hover:bg-slate-50/80 transition">
+            <td class="py-2.5 px-3 text-slate-700 whitespace-nowrap">${timeStr}</td>
+            <td class="py-2.5 px-3 font-mono text-slate-500">${l.packet_id !== undefined ? `#${l.packet_id}` : '-'}</td>
+            <td class="py-2.5 px-3 font-bold text-slate-900">${l.water_depth_cm !== null ? `${l.water_depth_cm} cm` : '-'}</td>
+            <td class="py-2.5 px-3 text-slate-600">${l.distance_cm !== undefined ? `${l.distance_cm} cm` : '-'}</td>
+            <td class="py-2.5 px-3">
+              <span class="font-bold text-emerald-600">${l.battery_percent !== undefined ? `${l.battery_percent}%` : '-'}</span>
+              <span class="text-[11px] text-slate-400 block">${l.battery_voltage !== undefined ? `${l.battery_voltage.toFixed(2)}V` : ''}</span>
+            </td>
+            <td class="py-2.5 px-3 font-mono text-[12px]">
+              <span class="text-indigo-600 font-bold">${rssi} dBm</span>
+              <span class="text-slate-400 block text-[10px]">SNR: ${snr} dB</span>
+            </td>
+            <td class="py-2.5 px-3 whitespace-nowrap">${pathBadge}</td>
+          </tr>
+        `;
+      }).join('');
+
+      lucide.createIcons();
     }
 
     function getTimeAgo(date) {
