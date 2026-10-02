@@ -2,11 +2,31 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
 
 const app = express();
 const PORT = process.env.PORT || 5002;
 
-// กำหนด Limit สูงขึ้นเพื่อรองรับการส่งรูปภาพ Base64 จากหน้า Admin
+// ตรวจสอบและสร้างโฟลเดอร์ public/uploads สำหรับเก็บรูปภาพ
+const uploadDir = path.join(__dirname, 'public', 'uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// ตั้งค่าที่เก็บรูปภาพด้วย Multer
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'device-' + uniqueSuffix + ext);
+  }
+});
+const upload = multer({ storage });
+
 app.use(cors());
 app.use(express.json({ limit: '15mb' }));
 app.use(express.urlencoded({ extended: true, limit: '15mb' }));
@@ -56,10 +76,91 @@ const DeviceConfig = mongoose.model('DeviceConfig', DeviceConfigSchema);
 const Telemetry = mongoose.model('Telemetry', TelemetrySchema);
 
 // ==========================================
-// 3. API Routes: Telemetry
+// 3. API Routes: Config & Admin (รองรับ FormData + Multer)
 // ==========================================
 
-// รับข้อมูล Telemetry จาก LoRa Gateway
+// รองรับทั้ง FormData (มีไฟล์รูปภาพแนบในชื่อ 'image') และ JSON
+app.post('/api/config', upload.single('image'), async (req, res) => {
+  try {
+    const {
+      device_id,
+      device_name,
+      location_type,
+      latitude,
+      longitude,
+      tank_height_cm,
+      warning_threshold_cm,
+      critical_threshold_cm
+    } = req.body;
+
+    if (!device_id || !device_id.trim()) {
+      return res.status(400).json({ error: 'device_id is required' });
+    }
+
+    const cleanDeviceId = device_id.trim();
+
+    // ประกอบข้อมูลอัปเดต
+    const updateData = {
+      device_name: device_name ? device_name.trim() : '',
+      location_type: location_type || 'ถนน',
+      latitude: latitude !== undefined && latitude !== '' ? Number(latitude) : 13.606,
+      longitude: longitude !== undefined && longitude !== '' ? Number(longitude) : 100.702,
+      tank_height_cm: tank_height_cm !== undefined && tank_height_cm !== '' ? Number(tank_height_cm) : 83.0,
+      warning_threshold_cm: warning_threshold_cm !== undefined && warning_threshold_cm !== '' ? Number(warning_threshold_cm) : 25.0,
+      critical_threshold_cm: critical_threshold_cm !== undefined && critical_threshold_cm !== '' ? Number(critical_threshold_cm) : 50.0
+    };
+
+    // ถ้ามีการอัปโหลดไฟล์รูปภาพใหม่เข้ามา ให้บันทึก Path
+    if (req.file) {
+      updateData.image_url = `/uploads/${req.file.filename}`;
+    }
+
+    const updatedConfig = await DeviceConfig.findOneAndUpdate(
+      { device_id: cleanDeviceId },
+      { $set: updateData },
+      { new: true, upsert: true }
+    );
+
+    res.json({
+      success: true,
+      message: 'บันทึกการตั้งค่าสำเร็จ',
+      data: updatedConfig
+    });
+  } catch (err) {
+    console.error('Config Save Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ดึง Config ของโหนดรายตัว
+app.get('/api/config/:deviceId', async (req, res) => {
+  try {
+    const { deviceId } = req.params;
+    const config = await DeviceConfig.findOne({ device_id: deviceId });
+    if (!config) {
+      return res.status(404).json({ error: 'Device config not found' });
+    }
+    res.json(config);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ลบจุดตรวจวัด
+app.delete('/api/config/:deviceId', async (req, res) => {
+  try {
+    const { deviceId } = req.params;
+    await DeviceConfig.deleteOne({ device_id: deviceId });
+    res.json({ success: true, message: 'ลบจุดตรวจวัดสำเร็จ' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ==========================================
+// 4. API Routes: Telemetry
+// ==========================================
+
 app.post('/api/telemetry', async (req, res) => {
   try {
     const { 
@@ -84,7 +185,7 @@ app.post('/api/telemetry', async (req, res) => {
       return res.status(400).json({ error: 'Valid distance_cm is required' });
     }
 
-    // Server-side Deduplication: ตรวจสอบแพ็กเก็ตซ้ำในรอบ 60 วินาที
+    // กรองแพ็กเก็ตซ้ำในรอบ 60 วินาที
     if (packet_id !== undefined && packet_id !== null) {
       const oneMinuteAgo = new Date(Date.now() - 60000);
       const duplicate = await Telemetry.findOne({
@@ -102,7 +203,7 @@ app.post('/api/telemetry', async (req, res) => {
       }
     }
 
-    // ค้นหาหรือลงทะเบียน Config อัตโนมัติหากเป็นโหนดใหม่
+    // ลงทะเบียนอุปกรณ์ให้อัตโนมัติหากยังไม่มี
     let config = await DeviceConfig.findOne({ device_id });
     if (!config) {
       config = await DeviceConfig.create({
@@ -149,7 +250,6 @@ app.post('/api/telemetry', async (req, res) => {
   }
 });
 
-// ดึงรายการโหนดทั้งหมดพร้อมข้อมูลล่าสุดสำหรับหน้าแรก
 app.get('/api/devices', async (req, res) => {
   try {
     const devices = await DeviceConfig.find().lean();
@@ -168,13 +268,12 @@ app.get('/api/devices', async (req, res) => {
   }
 });
 
-// ดึงประวัติข้อมูลตามช่วงเวลาสำหรับหน้า History
 app.get('/api/telemetry/history/:deviceId', async (req, res) => {
   try {
     const { deviceId } = req.params;
     const { timeframe } = req.query;
 
-    let timeLimit = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24 ชม. เริ่มต้น
+    let timeLimit = new Date(Date.now() - 24 * 60 * 60 * 1000);
     if (timeframe === '1h') timeLimit = new Date(Date.now() - 60 * 60 * 1000);
     else if (timeframe === '6h') timeLimit = new Date(Date.now() - 6 * 60 * 60 * 1000);
     else if (timeframe === '7d') timeLimit = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -186,82 +285,6 @@ app.get('/api/telemetry/history/:deviceId', async (req, res) => {
     }).sort({ created_at: 1 }).lean();
 
     res.json(history);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ==========================================
-// 4. API Routes: Config & Admin (แก้ 404)
-// ==========================================
-
-// บันทึกหรืออัปเดตการตั้งค่าจุดตรวจวัด (POST /api/config)
-app.post('/api/config', async (req, res) => {
-  try {
-    const {
-      device_id,
-      device_name,
-      location_type,
-      latitude,
-      longitude,
-      tank_height_cm,
-      warning_threshold_cm,
-      critical_threshold_cm,
-      image_url
-    } = req.body;
-
-    if (!device_id) {
-      return res.status(400).json({ error: 'device_id is required' });
-    }
-
-    const updatedConfig = await DeviceConfig.findOneAndUpdate(
-      { device_id },
-      {
-        $set: {
-          device_name: device_name || '',
-          location_type: location_type || 'ถนน',
-          latitude: latitude !== undefined ? Number(latitude) : 13.606,
-          longitude: longitude !== undefined ? Number(longitude) : 100.702,
-          tank_height_cm: tank_height_cm !== undefined ? Number(tank_height_cm) : 83.0,
-          warning_threshold_cm: warning_threshold_cm !== undefined ? Number(warning_threshold_cm) : 25.0,
-          critical_threshold_cm: critical_threshold_cm !== undefined ? Number(critical_threshold_cm) : 50.0,
-          image_url: image_url || ''
-        }
-      },
-      { new: true, upsert: true }
-    );
-
-    res.json({
-      success: true,
-      message: 'บันทึกการตั้งค่าสำเร็จ',
-      data: updatedConfig
-    });
-  } catch (err) {
-    console.error('Config Save Error:', err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ดึงข้อมูลการตั้งค่าจุดตรวจวัดรายตัว (GET /api/config/:deviceId)
-app.get('/api/config/:deviceId', async (req, res) => {
-  try {
-    const { deviceId } = req.params;
-    const config = await DeviceConfig.findOne({ device_id: deviceId });
-    if (!config) {
-      return res.status(404).json({ error: 'Device config not found' });
-    }
-    res.json(config);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ลบจุดตรวจวัด (DELETE /api/config/:deviceId)
-app.delete('/api/config/:deviceId', async (req, res) => {
-  try {
-    const { deviceId } = req.params;
-    await DeviceConfig.deleteOne({ device_id: deviceId });
-    res.json({ success: true, message: 'ลบจุดตรวจวัดสำเร็จ' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
