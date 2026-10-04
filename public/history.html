@@ -55,7 +55,7 @@
       </div>
       <div>
         <h1 class="text-lg md:text-2xl font-bold text-slate-900 tracking-tight leading-tight">ข้อมูลย้อนหลัง & กราฟวิเคราะห์</h1>
-        <p class="text-sm md:text-base text-slate-500 font-medium mt-0.5">วิเคราะห์แนวโน้มระดับน้ำและสถานะเครือข่าย Mesh</p>
+        <p class="text-sm md:text-base text-slate-500 font-medium mt-0.5">วิเคราะห์แนวโน้มระดับน้ำและสถานะเครือข่ายเซนเซอร์</p>
       </div>
     </div>
     <a href="/index.html" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-xs md:text-sm font-bold transition flex items-center gap-2">
@@ -68,8 +68,6 @@
     
     <!-- แถบด้านบน: รูปภาพจุดวัด + เลือกจุดวัด & Timeframe -->
     <div class="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col md:flex-row items-center gap-5">
-      
-      <!-- กล่องแสดงรูปภาพจุดติดตั้ง -->
       <div id="deviceImageContainer" class="w-full md:w-44 h-36 md:h-28 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shrink-0 relative flex items-center justify-center shadow-xs">
         <img id="deviceImage" src="" alt="รูปจุดตรวจวัด" class="w-full h-full object-cover hidden">
         <div id="deviceImagePlaceholder" class="flex flex-col items-center justify-center text-slate-400 p-2 text-center">
@@ -79,9 +77,7 @@
         </div>
       </div>
 
-      <!-- ส่วนควบคุมตัวเลือก -->
       <div class="flex-1 w-full flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-        <!-- ตัวเลือกจุดวัด -->
         <div class="w-full lg:w-auto flex flex-col sm:flex-row sm:items-center gap-2.5">
           <label class="text-sm md:text-base font-bold text-slate-700 shrink-0 flex items-center gap-1.5">
             <i data-lucide="map-pin" class="w-4 h-4 text-brand-600"></i>
@@ -92,123 +88,116 @@
           </select>
         </div>
 
-        <!-- ตัวเลือกช่วงเวลา (Timeframe) -->
+        <!-- ตัวเลือกช่วงเวลา (ค่าเริ่มต้น 6 ชม.) -->
         <div class="w-full lg:w-auto flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0">
           <span class="text-sm md:text-base font-bold text-slate-700 mr-1 shrink-0">ช่วงเวลา:</span>
           <button onclick="setTimeframe('1h')" class="tf-btn px-3.5 py-2 rounded-xl text-xs md:text-sm font-bold border bg-slate-100 text-slate-700 hover:bg-slate-200 transition" data-tf="1h">1 ชม.</button>
-          <button onclick="setTimeframe('6h')" class="tf-btn px-3.5 py-2 rounded-xl text-xs md:text-sm font-bold border bg-slate-100 text-slate-700 hover:bg-slate-200 transition" data-tf="6h">6 ชม.</button>
-          <button onclick="setTimeframe('24h')" class="tf-btn px-3.5 py-2 rounded-xl text-xs md:text-sm font-bold border bg-brand-600 text-white border-brand-600 transition shadow-sm" data-tf="24h">24 ชม.</button>
+          <button onclick="setTimeframe('6h')" class="tf-btn px-3.5 py-2 rounded-xl text-xs md:text-sm font-bold border bg-brand-600 text-white border-brand-600 transition shadow-sm" data-tf="6h">6 ชม.</button>
+          <button onclick="setTimeframe('24h')" class="tf-btn px-3.5 py-2 rounded-xl text-xs md:text-sm font-bold border bg-slate-100 text-slate-700 hover:bg-slate-200 transition" data-tf="24h">24 ชม.</button>
           <button onclick="setTimeframe('7d')" class="tf-btn px-3.5 py-2 rounded-xl text-xs md:text-sm font-bold border bg-slate-100 text-slate-700 hover:bg-slate-200 transition" data-tf="7d">7 วัน</button>
           <button onclick="setTimeframe('30d')" class="tf-btn px-3.5 py-2 rounded-xl text-xs md:text-sm font-bold border bg-slate-100 text-slate-700 hover:bg-slate-200 transition" data-tf="30d">30 วัน</button>
         </div>
       </div>
     </div>
 
-    <!-- ส่วนที่ 1: แสดงข้อมูลสถิติล่าสุด (Metrics Cards 5 ช่อง) -->
-    <div class="grid grid-cols-2 lg:grid-cols-5 gap-3.5 md:gap-4">
-      <!-- 1. ระดับน้ำปัจจุบัน -->
-      <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
-        <div class="flex items-center justify-between text-slate-500">
-          <span class="text-xs font-bold">ระดับน้ำปัจจุบัน</span>
-          <i data-lucide="waves" class="w-4 h-4 text-brand-600"></i>
+    <!-- ================= METRICS SECTION ================= -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      
+      <!-- กล่องซ้าย: ระดับน้ำปัจจุบัน (ขนาดใหญ่สุด) -->
+      <div class="lg:col-span-6 bg-gradient-to-br from-white to-orange-50/40 p-6 md:p-8 rounded-3xl border border-orange-200/80 shadow-sm flex flex-col justify-between relative overflow-hidden">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2 text-brand-600 font-bold text-sm md:text-base">
+            <span class="p-2 rounded-xl bg-brand-100/70 text-brand-600">
+              <i data-lucide="waves" class="w-6 h-6"></i>
+            </span>
+            <span>ระดับน้ำปัจจุบัน</span>
+          </div>
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> ข้อมูลสด
+          </span>
         </div>
-        <div class="mt-2 flex items-baseline gap-1.5">
-          <span id="metricWaterDepth" class="text-2xl md:text-3xl font-extrabold text-slate-900">-</span>
-          <span class="text-xs font-bold text-slate-400">cm</span>
+
+        <div class="my-6 flex items-baseline gap-3">
+          <span id="metricWaterDepth" class="text-6xl md:text-7xl font-black text-slate-900 tracking-tight leading-none">-</span>
+          <span class="text-xl md:text-2xl font-bold text-slate-400">cm</span>
         </div>
-        <div class="mt-2 text-[11px] text-slate-400 flex items-center gap-1">
-          <span class="w-2 h-2 rounded-full bg-emerald-500"></span> สูงจากพื้น
+
+        <div class="pt-4 border-t border-orange-100 flex flex-wrap items-center justify-between gap-2 text-xs md:text-sm text-slate-500">
+          <span class="flex items-center gap-1.5 font-medium">
+            <i data-lucide="clock" class="w-4 h-4 text-brand-600"></i>
+            อัปเดต: <b id="metricLastUpdated" class="text-slate-800 font-semibold">-</b>
+          </span>
+          <div id="thresholdBadges" class="flex items-center gap-2">
+            <span id="badgeWarnThresh" class="hidden text-amber-700 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200 text-xs font-bold">
+              เตือนภัย: <b id="valWarnThresh">0</b> cm
+            </span>
+            <span id="badgeCritThresh" class="hidden text-rose-700 bg-rose-50 px-2 py-0.5 rounded-lg border border-rose-200 text-xs font-bold">
+              วิกฤต: <b id="valCritThresh">0</b> cm
+            </span>
+          </div>
         </div>
       </div>
 
-      <!-- 2. น้ำสูงสุดในรอบ 7 วัน -->
-      <div class="bg-gradient-to-br from-white to-amber-50/50 p-4 rounded-2xl border border-amber-200/80 shadow-xs flex flex-col justify-between">
-        <div class="flex items-center justify-between text-amber-700">
-          <span class="text-xs font-bold">สูงสุดรอบ 7 วัน</span>
-          <i data-lucide="trending-up" class="w-4 h-4 text-amber-500"></i>
+      <!-- กล่องขวา: เรียง 3 กล่องย่อย (สูงสุดรอบ 1 วัน, สูงสุดรอบ 7 วัน, แบตเตอรี่) -->
+      <div class="lg:col-span-6 grid grid-cols-1 sm:grid-cols-3 gap-3.5 md:gap-4">
+        
+        <!-- 1. สูงสุดรอบ 1 วัน -->
+        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
+          <div class="flex items-center justify-between text-slate-500">
+            <span class="text-xs font-bold">สูงสุดรอบ 1 วัน</span>
+            <i data-lucide="trending-up" class="w-4 h-4 text-amber-500"></i>
+          </div>
+          <div class="mt-2 flex items-baseline gap-1.5">
+            <span id="metricMax1Day" class="text-2xl md:text-3xl font-extrabold text-amber-600">-</span>
+            <span class="text-xs font-bold text-slate-400">cm</span>
+          </div>
+          <div id="metricMax1DayTime" class="mt-2 text-[10px] text-slate-400 truncate">
+            เวลา: -
+          </div>
         </div>
-        <div class="mt-2 flex items-baseline gap-1.5">
-          <span id="metricMax7Days" class="text-2xl md:text-3xl font-extrabold text-amber-600">-</span>
-          <span class="text-xs font-bold text-amber-700/70">cm</span>
-        </div>
-        <div id="metricMax7DaysTime" class="mt-2 text-[10px] text-slate-400 truncate">
-          เวลา: -
-        </div>
-      </div>
 
-      <!-- 3. ระยะห่างเซนเซอร์ถึงผิวน้ำ -->
-      <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
-        <div class="flex items-center justify-between text-slate-500">
-          <span class="text-xs font-bold">เซนเซอร์ถึงผิวน้ำ</span>
-          <i data-lucide="arrow-down-up" class="w-4 h-4 text-sky-500"></i>
+        <!-- 2. สูงสุดรอบ 7 วัน -->
+        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
+          <div class="flex items-center justify-between text-slate-500">
+            <span class="text-xs font-bold">สูงสุดรอบ 7 วัน</span>
+            <i data-lucide="bar-chart-2" class="w-4 h-4 text-rose-500"></i>
+          </div>
+          <div class="mt-2 flex items-baseline gap-1.5">
+            <span id="metricMax7Days" class="text-2xl md:text-3xl font-extrabold text-rose-600">-</span>
+            <span class="text-xs font-bold text-slate-400">cm</span>
+          </div>
+          <div id="metricMax7DaysTime" class="mt-2 text-[10px] text-slate-400 truncate">
+            เวลา: -
+          </div>
         </div>
-        <div class="mt-2 flex items-baseline gap-1.5">
-          <span id="metricDistance" class="text-2xl md:text-3xl font-extrabold text-slate-900">-</span>
-          <span class="text-xs font-bold text-slate-400">cm</span>
-        </div>
-        <div class="mt-2 text-[11px] text-slate-400">
-          ระยะ Raw วัดจริง
-        </div>
-      </div>
 
-      <!-- 4. แบตเตอรี่ -->
-      <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
-        <div class="flex items-center justify-between text-slate-500">
-          <span class="text-xs font-bold">ระดับแบตเตอรี่</span>
-          <i data-lucide="battery-charging" class="w-4 h-4 text-emerald-500"></i>
+        <!-- 3. ระดับแบตเตอรี่ -->
+        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
+          <div class="flex items-center justify-between text-slate-500">
+            <span class="text-xs font-bold">ระดับแบตเตอรี่</span>
+            <i data-lucide="battery-charging" class="w-4 h-4 text-emerald-500"></i>
+          </div>
+          <div class="mt-2 flex items-baseline gap-1.5">
+            <span id="metricBattery" class="text-2xl md:text-3xl font-extrabold text-slate-900">-</span>
+            <span class="text-xs font-bold text-slate-400">%</span>
+          </div>
+          <div id="metricBatteryVolt" class="mt-2 text-[11px] text-slate-400 truncate">
+            แรงดัน: - V
+          </div>
         </div>
-        <div class="mt-2 flex items-baseline gap-1.5">
-          <span id="metricBattery" class="text-2xl md:text-3xl font-extrabold text-slate-900">-</span>
-          <span class="text-xs font-bold text-slate-400">%</span>
-        </div>
-        <div id="metricBatteryVolt" class="mt-2 text-[11px] text-slate-400">
-          แรงดัน: - V
-        </div>
-      </div>
 
-      <!-- 5. สัญญาณ LoRa & Mesh Path -->
-      <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between col-span-2 lg:col-span-1">
-        <div class="flex items-center justify-between text-slate-500">
-          <span class="text-xs font-bold">สัญญาณ & เส้นทาง Mesh</span>
-          <i data-lucide="git-branch" class="w-4 h-4 text-indigo-500"></i>
-        </div>
-        <div class="mt-2 flex items-baseline gap-1.5">
-          <span id="metricRssi" class="text-2xl md:text-3xl font-extrabold text-slate-900">-</span>
-          <span class="text-xs font-bold text-slate-400">dBm</span>
-        </div>
-        <div class="mt-2 flex items-center justify-between">
-          <span id="metricSnr" class="text-[11px] text-slate-400">SNR: - dB</span>
-          <span id="metricMeshPath" class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-bold truncate max-w-[110px]">-</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- แถบระบุเวลาอัปเดตล่าสุด & เกณฑ์ระดับน้ำ -->
-    <div class="bg-white px-5 py-3.5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs md:text-sm">
-      <div class="flex items-center gap-2 font-bold text-slate-700">
-        <i data-lucide="clock" class="w-4 h-4 text-brand-600"></i>
-        <span>อัปเดตข้อมูลล่าสุดเมื่อ:</span>
-        <span id="metricLastUpdated" class="text-slate-900 font-extrabold">-</span>
-      </div>
-
-      <div id="thresholdBadges" class="flex items-center gap-3">
-        <span id="badgeWarnThresh" class="hidden text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200 font-bold">
-          เตือนภัย: <b id="valWarnThresh">0</b> cm
-        </span>
-        <span id="badgeCritThresh" class="hidden text-rose-700 bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-200 font-bold">
-          วิกฤต: <b id="valCritThresh">0</b> cm
-        </span>
       </div>
     </div>
 
-    <!-- กล่องกราฟที่ 1: กราฟระดับน้ำ (Water Depth Chart) -->
+    <!-- ================= GRAPH SECTIONS ================= -->
+    <!-- กราฟที่ 1: กราฟระดับน้ำ -->
     <div class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-slate-200/80 space-y-4">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
         <div>
           <h2 id="chartTitle" class="text-base md:text-xl font-bold text-slate-900">กราฟระดับความสูงน้ำ (cm)</h2>
           <p class="text-xs md:text-sm text-slate-500 font-medium flex flex-wrap items-center gap-2 mt-0.5">
-            <span id="intervalBadge" class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-semibold text-[11px]">ช่วงเวลาข้อมูล: ปกติ</span>
-            <span id="nightLegend" class="hidden items-center gap-1 text-[11px] md:text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">
+            <span id="intervalBadge" class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-semibold text-[11px]">ช่วงเวลาข้อมูล: ข้อมูลตามเวลาจริง</span>
+            <span id="nightLegend" class="inline-flex items-center gap-1 text-[11px] md:text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">
               <span class="w-2.5 h-2.5 rounded-sm bg-slate-300/80 inline-block"></span> แถบสีเทา = ช่วงเวลากลางคืน (18:00 - 06:00 น.)
             </span>
           </p>
@@ -225,7 +214,7 @@
       </div>
     </div>
 
-    <!-- กล่องกราฟที่ 2: กราฟระดับแบตเตอรี่ (Battery Chart) -->
+    <!-- กราฟที่ 2: กราฟแบตเตอรี่ -->
     <div class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-slate-200/80 space-y-4">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
         <div class="flex items-center gap-2">
@@ -240,24 +229,50 @@
       </div>
     </div>
 
-    <!-- กล่องกราฟที่ 3: กราฟสัญญาณ LoRa (Signal RSSI & SNR Chart) -->
-    <div class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-slate-200/80 space-y-4">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
-        <div class="flex items-center gap-2">
-          <i data-lucide="signal" class="w-5 h-5 text-indigo-600"></i>
-          <h3 class="text-base md:text-lg font-bold text-slate-900">คุณภาพสัญญาณ LoRa (RSSI & SNR)</h3>
+    <!-- ================= TABLE & LOWER METRICS ================= -->
+    <div class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-slate-200/80 space-y-5">
+      
+      <!-- การ์ดย่อย 2 ตัว: เซนเซอร์ถึงผิวน้ำ & สัญญาณ + เส้นทาง Mesh (ย้ายมาไว้เหนือตาราง) -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pb-2 border-b border-slate-100">
+        <!-- เซนเซอร์ถึงผิวน้ำ -->
+        <div class="bg-slate-50/80 p-4 rounded-xl border border-slate-200/70 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <span class="p-2.5 rounded-xl bg-sky-100 text-sky-600">
+              <i data-lucide="arrow-down-up" class="w-5 h-5"></i>
+            </span>
+            <div>
+              <span class="text-xs text-slate-500 font-bold block">ระยะเซนเซอร์ถึงผิวน้ำ (Raw Distance)</span>
+              <span class="text-[11px] text-slate-400 font-medium">ระยะที่เซนเซอร์ Ultrasonic ตรวจวัดจริง</span>
+            </div>
+          </div>
+          <div class="text-right">
+            <span id="metricDistance" class="text-2xl font-black text-slate-900">-</span>
+            <span class="text-xs font-bold text-slate-400 ml-1">cm</span>
+          </div>
         </div>
-        <span class="text-xs text-slate-400 font-medium">ความแรงสัญญาณ (RSSI) และอัตราส่วนสัญญาณต่อสัญญาณรบกวน (SNR)</span>
+
+        <!-- สัญญาณ & เส้นทาง Mesh -->
+        <div class="bg-slate-50/80 p-4 rounded-xl border border-slate-200/70 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <span class="p-2.5 rounded-xl bg-indigo-100 text-indigo-600">
+              <i data-lucide="git-branch" class="w-5 h-5"></i>
+            </span>
+            <div>
+              <span class="text-xs text-slate-500 font-bold block">คุณภาพสัญญาณ & เส้นทางส่งข้อมูลล่าสุด</span>
+              <div class="flex items-center gap-2 mt-0.5">
+                <span id="metricRssi" class="text-sm font-bold text-indigo-600">- dBm</span>
+                <span id="metricSnr" class="text-[11px] text-slate-400 font-medium">SNR: - dB</span>
+              </div>
+            </div>
+          </div>
+          <div class="text-right">
+            <span id="metricMeshPath" class="text-xs font-mono px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 font-bold inline-block">-</span>
+          </div>
+        </div>
       </div>
 
-      <div class="relative h-64 md:h-72 w-full">
-        <canvas id="signalChart"></canvas>
-      </div>
-    </div>
-
-    <!-- ตารางบันทึกประวัติย้อนหลัง & เส้นทาง Mesh Trace -->
-    <div class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-slate-200/80 space-y-4">
-      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+      <!-- หัวตารางประวัติ -->
+      <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
           <i data-lucide="table" class="w-5 h-5 text-slate-700"></i>
           <h3 class="text-base md:text-lg font-bold text-slate-900">ตารางประวัติข้อมูลและเส้นทางทวนสัญญาณ (Mesh Path)</h3>
@@ -310,19 +325,16 @@
   <!-- ================= JAVASCRIPT LOGIC ================= -->
   <script>
     let currentDeviceId = '';
-    let currentTimeframe = '24h';
+    let currentTimeframe = '6h'; // ค่าเริ่มต้นเป็น 6 ชม.
     let waterChart = null;
     let batteryChart = null;
-    let signalChart = null;
     let allDevices = [];
     let currentProcessedLogs = [];
 
     const urlParams = new URLSearchParams(window.location.search);
     const paramDevice = urlParams.get('device');
 
-    // -------------------------------------------------------------
     // Plugin ไฮไลต์กลางคืน (18:00 - 06:00 น.)
-    // -------------------------------------------------------------
     const nightTimeHighlightPlugin = {
       id: 'nightTimeHighlight',
       beforeDraw: (chart) => {
@@ -359,9 +371,7 @@
 
     Chart.register(nightTimeHighlightPlugin);
 
-    // -------------------------------------------------------------
-    // 1. โหลดรายชื่อจุดวัด
-    // -------------------------------------------------------------
+    // 1. โหลดรายชื่อจุดตรวจวัด
     async function loadDevices() {
       try {
         const res = await fetch('/api/devices');
@@ -385,7 +395,7 @@
         updateBrowserUrl(currentDeviceId);
         updateDeviceInfoUI();
         loadHistoryData();
-        load7DaysMaxRecord();
+        loadPeriodMaxRecords(); // ดึงค่าน้ำสูงสุด 1 วัน และ 7 วัน
       } catch (err) {
         console.error(err);
       }
@@ -397,9 +407,6 @@
       window.history.pushState({ device: devId }, '', newUrl);
     }
 
-    // -------------------------------------------------------------
-    // อัปเดตรูปภาพ & ข้อมูลเกณฑ์
-    // -------------------------------------------------------------
     function updateDeviceInfoUI() {
       const dev = allDevices.find(d => d.device_id === currentDeviceId);
       const imgEl = document.getElementById('deviceImage');
@@ -451,9 +458,7 @@
       }
     }
 
-    // -------------------------------------------------------------
-    // 2. ฟังก์ชัน Downsample ข้อมูลกราฟ
-    // -------------------------------------------------------------
+    // 2. Downsample ข้อมูลกราฟ
     function downsampleLogs(rawLogs, tf) {
       if (!rawLogs || rawLogs.length === 0) return [];
 
@@ -484,18 +489,11 @@
         const time = new Date(log.created_at).getTime();
         const bucketKey = Math.floor(time / bucketMs) * bucketMs;
 
-        const rssiVal = (log.signal && log.signal.rssi !== undefined) ? Number(log.signal.rssi) : ((log.rssi !== undefined) ? Number(log.rssi) : null);
-        const snrVal = (log.signal && log.signal.snr !== undefined) ? Number(log.signal.snr) : ((log.snr !== undefined) ? Number(log.snr) : null);
-
         if (!buckets.has(bucketKey)) {
           buckets.set(bucketKey, {
             count: 0,
             sumDepth: 0,
             sumBattery: 0,
-            rssiCount: 0,
-            sumRssi: 0,
-            snrCount: 0,
-            sumSnr: 0,
             latestLog: log
           });
         }
@@ -504,16 +502,6 @@
         b.count++;
         b.sumDepth += (log.water_depth_cm !== null && log.water_depth_cm !== undefined) ? Number(log.water_depth_cm) : 0;
         b.sumBattery += (log.battery_percent !== null && log.battery_percent !== undefined) ? Number(log.battery_percent) : 100;
-
-        if (rssiVal !== null && !isNaN(rssiVal)) {
-          b.rssiCount++;
-          b.sumRssi += rssiVal;
-        }
-        if (snrVal !== null && !isNaN(snrVal)) {
-          b.snrCount++;
-          b.sumSnr += snrVal;
-        }
-
         b.latestLog = log;
       });
 
@@ -526,12 +514,7 @@
           distance_cm: val.latestLog.distance_cm,
           battery_voltage: val.latestLog.battery_voltage,
           hops_path: val.latestLog.hops_path || val.latestLog.device_id,
-          signal: {
-            rssi: val.rssiCount > 0 ? Math.round(val.sumRssi / val.rssiCount) : null,
-            snr: val.snrCount > 0 ? Math.round((val.sumSnr / val.snrCount) * 10) / 10 : null
-          },
-          rssi: val.rssiCount > 0 ? Math.round(val.sumRssi / val.rssiCount) : null,
-          snr: val.snrCount > 0 ? Math.round((val.sumSnr / val.snrCount) * 10) / 10 : null
+          signal: val.latestLog.signal
         });
       });
 
@@ -539,9 +522,7 @@
       return aggregated;
     }
 
-    // -------------------------------------------------------------
-    // 3. โหลดประวัติย้อนหลัง & เรนเดอร์กราฟและตาราง
-    // -------------------------------------------------------------
+    // 3. โหลดข้อมูลประวัติ & กราฟ
     async function loadHistoryData() {
       if (!currentDeviceId) return;
       try {
@@ -552,58 +533,83 @@
         renderHistoryTable(rawLogs);
 
         currentProcessedLogs = downsampleLogs(rawLogs, currentTimeframe);
-
         document.getElementById('recordCount').innerText = `${currentProcessedLogs.length} จุดข้อมูล`;
 
         renderWaterChart(currentProcessedLogs);
         renderBatteryChart(currentProcessedLogs);
-        renderSignalChart(currentProcessedLogs);
       } catch (err) {
         console.error(err);
       }
     }
 
-    // -------------------------------------------------------------
-    // 4. ดึงสถิติน้ำสูงสุดรอบ 7 วัน
-    // -------------------------------------------------------------
-    async function load7DaysMaxRecord() {
+    // 4. ดึงสถิติน้ำสูงสุดรอบ 1 วัน และรอบ 7 วัน
+    async function loadPeriodMaxRecords() {
       if (!currentDeviceId) return;
       try {
+        // ดึงข้อมูล 7 วัน (ครอบคลุมทั้งรอบ 1 วัน และ 7 วัน)
         const res = await fetch(`/api/telemetry/history/${currentDeviceId}?timeframe=7d`);
         const logs7d = await res.json();
 
-        const maxEl = document.getElementById('metricMax7Days');
-        const maxTimeEl = document.getElementById('metricMax7DaysTime');
+        const max1El = document.getElementById('metricMax1Day');
+        const max1TimeEl = document.getElementById('metricMax1DayTime');
+        const max7El = document.getElementById('metricMax7Days');
+        const max7TimeEl = document.getElementById('metricMax7DaysTime');
 
         if (!logs7d || logs7d.length === 0) {
-          maxEl.innerText = '-';
-          maxTimeEl.innerText = 'เวลา: ไม่มีข้อมูล';
+          max1El.innerText = '-';
+          max1TimeEl.innerText = 'เวลา: ไม่มีข้อมูล';
+          max7El.innerText = '-';
+          max7TimeEl.innerText = 'เวลา: ไม่มีข้อมูล';
           return;
         }
 
-        let maxVal = -Infinity;
-        let maxItem = null;
+        const now = Date.now();
+        const oneDayAgo = now - (24 * 60 * 60 * 1000);
+
+        let maxVal1 = -Infinity, maxItem1 = null;
+        let maxVal7 = -Infinity, maxItem7 = null;
 
         logs7d.forEach(l => {
           if (l.water_depth_cm !== null && l.water_depth_cm !== undefined) {
             const depth = Number(l.water_depth_cm);
-            if (depth > maxVal) {
-              maxVal = depth;
-              maxItem = l;
+            const time = new Date(l.created_at).getTime();
+
+            // รอบ 7 วัน
+            if (depth > maxVal7) {
+              maxVal7 = depth;
+              maxItem7 = l;
+            }
+
+            // รอบ 1 วัน (24 ชม. ล่าสุด)
+            if (time >= oneDayAgo && depth > maxVal1) {
+              maxVal1 = depth;
+              maxItem1 = l;
             }
           }
         });
 
-        if (maxItem) {
-          maxEl.innerText = maxVal.toFixed(1);
-          const d = new Date(maxItem.created_at);
-          maxTimeEl.innerText = `${d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })} ${d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}`;
+        // แสดงผลรอบ 1 วัน
+        if (maxItem1) {
+          max1El.innerText = maxVal1.toFixed(1);
+          const d = new Date(maxItem1.created_at);
+          max1TimeEl.innerText = `${d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })} ${d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}`;
         } else {
-          maxEl.innerText = '-';
-          maxTimeEl.innerText = 'เวลา: ไม่มีข้อมูล';
+          max1El.innerText = '-';
+          max1TimeEl.innerText = 'เวลา: ไม่มีข้อมูล';
         }
+
+        // แสดงผลรอบ 7 วัน
+        if (maxItem7) {
+          max7El.innerText = maxVal7.toFixed(1);
+          const d = new Date(maxItem7.created_at);
+          max7TimeEl.innerText = `${d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })} ${d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}`;
+        } else {
+          max7El.innerText = '-';
+          max7TimeEl.innerText = 'เวลา: ไม่มีข้อมูล';
+        }
+
       } catch (e) {
-        console.error('Error fetching 7 days max:', e);
+        console.error('Error fetching max records:', e);
       }
     }
 
@@ -613,7 +619,7 @@
         document.getElementById('metricDistance').innerText = '-';
         document.getElementById('metricBattery').innerText = '-';
         document.getElementById('metricBatteryVolt').innerText = 'แรงดัน: - V';
-        document.getElementById('metricRssi').innerText = '-';
+        document.getElementById('metricRssi').innerText = '- dBm';
         document.getElementById('metricSnr').innerText = 'SNR: - dB';
         document.getElementById('metricMeshPath').innerText = '-';
         document.getElementById('metricLastUpdated').innerText = 'ยังไม่มีข้อมูล';
@@ -630,21 +636,21 @@
       document.getElementById('metricBatteryVolt').innerText = `แรงดัน: ${volt} V`;
 
       const rssi = (latest.signal && latest.signal.rssi !== undefined) ? latest.signal.rssi : (latest.rssi || '-');
-      document.getElementById('metricRssi').innerText = rssi;
+      document.getElementById('metricRssi').innerText = `${rssi} dBm`;
 
       const snr = (latest.signal && latest.signal.snr !== undefined) ? latest.signal.snr : (latest.snr || '-');
       document.getElementById('metricSnr').innerText = `SNR: ${snr} dB`;
 
-      // แสดงสถานะ Path บนการ์ด
+      // แสดง Path
       const pathEl = document.getElementById('metricMeshPath');
       const hops = latest.hops_path || latest.device_id;
       if (hops && hops.includes('>')) {
         pathEl.innerText = hops;
-        pathEl.className = 'text-[10px] font-mono px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold truncate max-w-[120px]';
+        pathEl.className = 'text-xs font-mono px-2 py-1 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold truncate max-w-[150px] inline-block';
         pathEl.title = `Mesh Relay: ${hops}`;
       } else {
         pathEl.innerText = 'Direct Link';
-        pathEl.className = 'text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-bold';
+        pathEl.className = 'text-xs px-2 py-1 rounded-md bg-white border border-slate-200 text-slate-600 font-bold inline-block';
         pathEl.title = 'เชื่อมต่อตรงไปยัง Gateway';
       }
 
@@ -666,7 +672,6 @@
         return;
       }
 
-      // นำรายการล่าสุดมาแสดง 30 แถวแรก
       const recentLogs = [...logs].reverse().slice(0, 30);
 
       tbody.innerHTML = recentLogs.map(l => {
@@ -714,9 +719,7 @@
       return `${days} วันที่แล้ว`;
     }
 
-    // -------------------------------------------------------------
     // กราฟที่ 1: กราฟระดับน้ำ
-    // -------------------------------------------------------------
     function renderWaterChart(logs) {
       const ctx = document.getElementById('waterChart').getContext('2d');
       const dev = allDevices.find(d => d.device_id === currentDeviceId);
@@ -820,9 +823,7 @@
       });
     }
 
-    // -------------------------------------------------------------
     // กราฟที่ 2: กราฟแบตเตอรี่
-    // -------------------------------------------------------------
     function renderBatteryChart(logs) {
       const ctx = document.getElementById('batteryChart').getContext('2d');
       
@@ -886,135 +887,6 @@
       });
     }
 
-    // -------------------------------------------------------------
-    // กราฟที่ 3: กราฟสัญญาณ LoRa (RSSI & SNR)
-    // -------------------------------------------------------------
-    function renderSignalChart(logs) {
-      const ctx = document.getElementById('signalChart').getContext('2d');
-      
-      const labels = logs.map(l => {
-        const d = new Date(l.created_at);
-        if (currentTimeframe === '7d' || currentTimeframe === '30d') {
-          return `${d.getDate()}/${d.getMonth()+1} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
-        }
-        return d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-      });
-
-      const rssiData = logs.map(l => {
-        if (l.signal && l.signal.rssi !== undefined && l.signal.rssi !== null) return l.signal.rssi;
-        if (l.rssi !== undefined && l.rssi !== null) return l.rssi;
-        return null;
-      });
-
-      const snrData = logs.map(l => {
-        if (l.signal && l.signal.snr !== undefined && l.signal.snr !== null) return l.signal.snr;
-        if (l.snr !== undefined && l.snr !== null) return l.snr;
-        return null;
-      });
-
-      if (signalChart) {
-        signalChart.destroy();
-      }
-
-      signalChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels,
-          datasets: [
-            {
-              label: 'RSSI (ความแรงสัญญาณ)',
-              data: rssiData,
-              borderColor: '#4f46e5',
-              backgroundColor: 'rgba(79, 70, 229, 0.08)',
-              borderWidth: 2,
-              fill: false,
-              tension: 0.2,
-              pointRadius: logs.length > 80 ? 0 : 2,
-              pointHoverRadius: 5,
-              yAxisID: 'y'
-            },
-            {
-              label: 'SNR (Signal-to-Noise)',
-              data: snrData,
-              borderColor: '#a855f7',
-              backgroundColor: 'transparent',
-              borderWidth: 1.5,
-              borderDash: [4, 3],
-              fill: false,
-              tension: 0.2,
-              pointRadius: 0,
-              pointHoverRadius: 4,
-              yAxisID: 'y1'
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: { mode: 'index', intersect: false },
-          plugins: {
-            legend: {
-              position: 'bottom',
-              labels: {
-                font: { family: 'Noto Sans Thai', size: 12, weight: 'bold' },
-                padding: 14,
-                usePointStyle: true,
-                pointStyle: 'circle'
-              }
-            },
-            tooltip: {
-              titleFont: { family: 'Noto Sans Thai', size: 12, weight: 'bold' },
-              bodyFont: { family: 'Noto Sans Thai', size: 11 },
-              callbacks: {
-                label: (ctx) => {
-                  if (ctx.datasetIndex === 0) return ` RSSI: ${ctx.parsed.y} dBm`;
-                  return ` SNR: ${ctx.parsed.y} dB`;
-                }
-              }
-            }
-          },
-          scales: {
-            x: {
-              ticks: { font: { family: 'Noto Sans Thai', size: 10 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 8 },
-              grid: { color: '#f8fafc' }
-            },
-            y: {
-              type: 'linear',
-              display: true,
-              position: 'left',
-              ticks: { 
-                font: { family: 'Noto Sans Thai', size: 11 },
-                callback: (v) => v + ' dBm' 
-              },
-              grid: { color: '#f1f5f9' },
-              title: {
-                display: true,
-                text: 'RSSI (dBm)',
-                font: { family: 'Noto Sans Thai', size: 11, weight: 'bold' },
-                color: '#4f46e5'
-              }
-            },
-            y1: {
-              type: 'linear',
-              display: true,
-              position: 'right',
-              ticks: { 
-                font: { family: 'Noto Sans Thai', size: 11 },
-                callback: (v) => v + ' dB' 
-              },
-              grid: { drawOnChartArea: false },
-              title: {
-                display: true,
-                text: 'SNR (dB)',
-                font: { family: 'Noto Sans Thai', size: 11, weight: 'bold' },
-                color: '#a855f7'
-              }
-            }
-          }
-        }
-      });
-    }
-
     function setTimeframe(tf) {
       currentTimeframe = tf;
       document.querySelectorAll('.tf-btn').forEach(btn => {
@@ -1033,7 +905,7 @@
       updateBrowserUrl(currentDeviceId);
       updateDeviceInfoUI();
       loadHistoryData();
-      load7DaysMaxRecord();
+      loadPeriodMaxRecords();
     });
 
     window.addEventListener('DOMContentLoaded', () => {
