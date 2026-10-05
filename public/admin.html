@@ -3,35 +3,34 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;">
-  <title>ตั้งค่าจุดตรวจวัดระดับน้ำ (Admin) | ระบบตรวจวัดระดับน้ำ</title>
+  <title>ตั้งค่าจุดตรวจวัด & จัดการ Whitelist | ระบบตรวจวัดระดับน้ำ</title>
 
   <!-- Google Fonts: Noto Sans Thai -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com">
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
 
-  <!-- Tailwind CSS CDN -->
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Lucide Icons CDN -->
+  <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <script>
     tailwind.config = {
       theme: {
         extend: {
-          fontFamily: {
+          fontFamily: { 
             sans: ['"Noto Sans Thai"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace']
           },
-          colors: {
-            brand: {
-              50: '#fff7ed',
-              100: '#ffedd5',
-              500: '#f97316',
-              600: '#ea580c',
-              700: '#c2410c',
-            }
+          colors: { 
+            brand: { 
+              50: '#fff7ed', 
+              100: '#ffedd5', 
+              500: '#f97316', 
+              600: '#ea580c', 
+              700: '#c2410c' 
+            } 
           }
         }
       }
@@ -39,474 +38,478 @@
   </script>
 
   <style>
-    body {
-      font-family: 'Noto Sans Thai', sans-serif;
-    }
+    body { font-family: 'Noto Sans Thai', sans-serif; }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-800 antialiased flex flex-col min-h-screen pb-24">
+<body class="bg-slate-50 text-slate-800 antialiased flex flex-col min-h-screen pb-24 font-sans">
 
-  <!-- ================= MODAL LOGIN (แสดงเมื่อยังไม่ล็อกอิน) ================= -->
-  <div id="loginModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl border border-slate-100 p-6 md:p-8 space-y-6 animate-in fade-in zoom-in duration-200">
-      
-      <div class="text-center space-y-2">
-        <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-brand-600 to-amber-500 mx-auto flex items-center justify-center text-white shadow-lg shadow-brand-500/25">
-          <i data-lucide="shield-check" class="w-7 h-7"></i>
-        </div>
-        <h2 class="text-xl md:text-2xl font-bold text-slate-900 tracking-tight">เข้าสู่ระบบผู้ดูแล (Admin)</h2>
-        <p class="text-xs md:text-sm text-slate-500 font-medium">กรุณายืนยันตัวตนก่อนจัดการการตั้งค่าอุปกรณ์</p>
-      </div>
-
-      <form id="loginForm" class="space-y-4">
-        <div>
-          <label class="block text-xs md:text-sm font-bold text-slate-700 mb-1.5">ชื่อผู้ใช้งาน (Username)</label>
-          <div class="relative">
-            <i data-lucide="user" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
-            <input type="text" id="loginUsername" required autocomplete="username" placeholder="ระบุ username"
-              class="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-xl text-sm md:text-base font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500 text-slate-800">
-          </div>
-        </div>
-
-        <div>
-          <label class="block text-xs md:text-sm font-bold text-slate-700 mb-1.5">รหัสผ่าน (Password)</label>
-          <div class="relative">
-            <i data-lucide="key-round" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
-            <input type="password" id="loginPassword" required autocomplete="current-password" placeholder="ระบุ password"
-              class="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-xl text-sm md:text-base font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500 text-slate-800">
-          </div>
-        </div>
-
-        <div id="loginError" class="hidden text-xs md:text-sm font-bold text-rose-600 bg-rose-50 border border-rose-200 px-3 py-2 rounded-xl text-center">
-          ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง!
-        </div>
-
-        <button type="submit"
-          class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 rounded-xl text-sm md:text-base transition duration-150 shadow-md shadow-brand-500/20 flex items-center justify-center gap-2">
-          <i data-lucide="log-in" class="w-4 h-4"></i>
-          <span>เข้าสู่ระบบ</span>
-        </button>
-
-        <a href="/index.html" class="block text-center text-xs md:text-sm text-slate-400 hover:text-slate-600 font-semibold pt-1">
-          ← ยกเลิกและกลับหน้าภาพรวม
-        </a>
-      </form>
-    </div>
-  </div>
-
-  <!-- ================= 1. HEADER ด้านบน ================= -->
-  <header class="bg-white border-b border-slate-200/80 px-4 md:px-6 py-4 flex items-center justify-between shadow-sm sticky top-0 z-30">
-    <div class="flex items-center gap-3.5">
-      <div class="w-11 h-11 md:w-12 md:h-12 rounded-xl bg-gradient-to-tr from-brand-600 to-amber-500 flex items-center justify-center text-white shadow-md shadow-brand-500/20 shrink-0">
-        <i data-lucide="settings" class="w-6 h-6 md:w-7 md:h-7"></i>
+  <!-- ================= 1. HEADER ================= -->
+  <header class="bg-white border-b border-slate-200/80 px-4 md:px-8 py-3.5 flex items-center justify-between shadow-xs sticky top-0 z-30">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-gradient-to-tr from-brand-600 to-amber-500 flex items-center justify-center text-white shadow-md shadow-brand-500/20 shrink-0">
+        <i data-lucide="settings" class="w-5 h-5 md:w-6 md:h-6"></i>
       </div>
       <div>
-        <h1 class="text-lg md:text-2xl font-bold text-slate-900 tracking-tight leading-tight">ตั้งค่าจุดตรวจวัดระดับน้ำ</h1>
-        <p class="text-sm md:text-base text-slate-500 font-medium mt-0.5">จัดการข้อมูลอุปกรณ์ พิกัด ระยะติดตั้ง และเกณฑ์การเตือนภัย</p>
+        <h1 class="text-base md:text-xl font-bold text-slate-900 tracking-tight leading-tight">ตั้งค่าจุดตรวจวัดระดับน้ำ</h1>
+        <p class="text-xs text-slate-500 font-medium">จัดการข้อมูลอุปกรณ์ พิกัด ระยะติดตั้ง และเกณฑ์การเตือนภัย</p>
       </div>
     </div>
+
     <div class="flex items-center gap-2.5">
-      <button onclick="logoutAdmin()" class="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 px-3.5 py-2 rounded-xl text-xs md:text-sm font-bold transition flex items-center gap-1.5">
-        <i data-lucide="log-out" class="w-4 h-4"></i>
-        <span class="hidden sm:inline">ออกจากระบบ</span>
-      </button>
-      <a href="/index.html" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-xs md:text-sm font-bold transition flex items-center gap-2">
-        <i data-lucide="arrow-left" class="w-4 h-4"></i> กลับหน้าภาพรวม
+      <a href="/index.html" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs md:text-sm font-bold transition">
+        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+        <span>กลับหน้าภาพรวม</span>
       </a>
     </div>
   </header>
 
-  <!-- ================= 2. MAIN CONTENT (จะแสดงเมื่อล็อกอินแล้ว) ================= -->
-  <main id="adminContent" class="hidden flex-1 max-w-3xl w-full mx-auto p-4 md:p-6 space-y-6">
+  <!-- ================= 2. MAIN WORKSPACE ================= -->
+  <main class="flex-1 max-w-5xl w-full mx-auto p-4 md:p-6 space-y-6">
 
-    <!-- Card เลือกหรือค้นหาจุดวัด -->
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 md:p-6 space-y-4">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
-        <div>
-          <h2 class="text-base md:text-xl font-bold text-slate-900">เลือกอุปกรณ์ที่ต้องการตั้งค่า</h2>
-          <p class="text-xs md:text-sm text-slate-500 font-medium">เลือกจุดวัดที่มีในระบบ หรือพิมพ์รหัสใหม่เพื่อเพิ่มจุดวัด</p>
+    <!-- แถบแจ้งเตือนบันทึกสำเร็จ -->
+    <div id="saveAlert" class="hidden bg-emerald-50 border border-emerald-200 p-4 rounded-2xl flex items-center justify-between shadow-xs text-emerald-800 text-xs md:text-sm">
+      <div class="flex items-center gap-2">
+        <i data-lucide="check-circle" class="w-5 h-5 text-emerald-600"></i>
+        <span class="font-bold">บันทึกการตั้งค่าจุดตรวจวัดเรียบร้อยแล้ว</span>
+      </div>
+      <span id="fetchStatus" class="text-xs text-emerald-600"></span>
+    </div>
+
+    <!-- ================= ส่วนที่ 1: จัดการ WHITELIST อุปกรณ์ที่อนุญาต ================= -->
+    <div class="bg-white p-5 md:p-6 rounded-3xl border border-slate-200/90 shadow-sm space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-2">
+          <span class="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
+            <i data-lucide="shield-check" class="w-5 h-5"></i>
+          </span>
+          <div>
+            <h2 class="text-base font-bold text-slate-900">จัดการรายการอุปกรณ์ที่อนุญาต (Whitelist)</h2>
+            <p class="text-xs text-slate-400">อุปกรณ์ที่ไม่อยู่ในรายการนี้ Gateway จะไม่บันทึกข้อมูลเข้าสู่ระบบ</p>
+          </div>
         </div>
-        <span id="fetchStatus" class="text-xs md:text-sm px-3 py-1 bg-slate-100 text-slate-600 font-bold rounded-full self-start sm:self-auto">
-          กำลังเชื่อมต่อ...
+        <span class="text-xs bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full font-bold self-start sm:self-auto">
+          ลงทะเบียนแล้ว <span id="whitelistCount">0</span> ตัว
         </span>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-xs md:text-sm font-bold text-slate-700 mb-1.5">เลือกจากจุดวัดที่มีอยู่:</label>
-          <select id="quickDeviceSelect" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm md:text-base font-semibold bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500">
-            <option value="">-- เลือกจุดวัดเพื่อดึงข้อมูล --</option>
-          </select>
+      <!-- ฟอร์มเพิ่ม ID เข้า Whitelist -->
+      <form id="whitelistForm" class="flex flex-col sm:flex-row items-center gap-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+        <div class="flex-1 w-full">
+          <label class="text-[11px] font-bold text-slate-600 mb-1 block">รหัสอุปกรณ์ใหม่ (Device ID):</label>
+          <input type="text" id="newWhitelistId" placeholder="เช่น SPK-001, SPK-002" required class="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2 text-sm font-mono font-bold text-slate-900 uppercase focus:outline-none focus:ring-2 focus:ring-indigo-500">
         </div>
-        <div>
-          <label class="block text-xs md:text-sm font-bold text-slate-700 mb-1.5">รหัสจุดวัด (Device ID):</label>
-          <input type="text" id="deviceId" value="SPK-001" required
-            class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm md:text-base bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono font-bold text-slate-800">
+        <div class="flex-1 w-full">
+          <label class="text-[11px] font-bold text-slate-600 mb-1 block">คำอธิบายสั้นๆ (ทางเลือก):</label>
+          <input type="text" id="newWhitelistDesc" placeholder="เช่น บ่อพักหน้า รร., สะพานคลอง 1" class="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500">
         </div>
+        <button type="submit" class="w-full sm:w-auto mt-2 sm:mt-5 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs md:text-sm font-bold transition flex items-center justify-center gap-1.5 shrink-0 shadow-sm">
+          <i data-lucide="plus" class="w-4 h-4"></i>
+          <span>เพิ่มเข้า Whitelist</span>
+        </button>
+      </form>
+
+      <!-- ตารางแสดงรายการ Whitelist -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs text-slate-600">
+          <thead class="bg-slate-50 text-slate-700 uppercase font-bold text-[11px] border-b border-slate-200">
+            <tr>
+              <th class="py-2.5 px-3">Device ID</th>
+              <th class="py-2.5 px-3">คำอธิบาย</th>
+              <th class="py-2.5 px-3">วันที่เพิ่ม</th>
+              <th class="py-2.5 px-3 text-right">จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="whitelistTableBody" class="divide-y divide-slate-100 font-medium">
+            <tr><td colspan="4" class="py-6 text-center text-slate-400">กำลังโหลดรายการ Whitelist...</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
-    <!-- ฟอร์มการตั้งค่าหลัก -->
-    <form id="configForm" class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 md:p-6 space-y-6">
+    <!-- ================= ส่วนที่ 2: ฟอร์มตั้งค่ารายละเอียดจุดตรวจวัด ================= -->
+    <form id="configForm" class="bg-white p-5 md:p-8 rounded-3xl border border-slate-200/90 shadow-sm space-y-6">
+      
+      <!-- เลือกอุปกรณ์ที่จะแก้ไข หรือสร้างใหม่ -->
+      <div class="border-b border-slate-100 pb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-base md:text-lg font-bold text-slate-900">รายละเอียดจุดตรวจวัดและระยะติดตั้ง</h2>
+          <p class="text-xs text-slate-500">เลือกอุปกรณ์จากรายการเพื่อแก้ไข หรือกรอกข้อมูลใหม่ด้านล่าง</p>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <select id="deviceSelector" onchange="onSelectDevice(this.value)" class="bg-slate-50 border border-slate-300 text-slate-900 text-xs md:text-sm font-bold rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <option value="">-- เลือกอุปกรณ์เพื่อแก้ไข --</option>
+          </select>
+          <button type="button" onclick="resetForm()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition">
+            เคลียร์ฟอร์ม
+          </button>
+        </div>
+      </div>
 
       <!-- ข้อมูลพื้นฐาน -->
-      <div class="space-y-4">
-        <h3 class="text-sm md:text-base font-bold text-brand-600 flex items-center gap-2">
-          <i data-lucide="tag" class="w-4 h-4"></i> ข้อมูลทั่วไปของจุดติดตั้ง
-        </h3>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs md:text-sm font-bold text-slate-700 mb-1.5">ชื่อเรียกจุดติดตั้ง / บริเวณที่วัด</label>
-            <input type="text" id="deviceName" placeholder="เช่น คลองสำโรง (บางพลีใหญ่)" required
-              class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm md:text-base font-medium focus:outline-none focus:ring-2 focus:ring-brand-500">
-          </div>
-
-          <div>
-            <label class="block text-xs md:text-sm font-bold text-slate-700 mb-1.5">ชนิดของสถานที่</label>
-            <select id="locationType" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm md:text-base font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white">
-              <option value="ถนน">🛣️ ถนน</option>
-              <option value="ท่อน้ำ">🕳️ ท่อน้ำ</option>
-              <option value="คลอง">🏞️ คลอง</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- พิกัด GPS -->
-        <div class="space-y-1.5">
-          <div class="flex justify-between items-center">
-            <label class="block text-xs md:text-sm font-bold text-slate-700">พิกัดทางภูมิศาสตร์ (GPS บนแผนที่)</label>
-            <button type="button" id="btnGetCurrentLocation" class="text-xs md:text-sm text-brand-600 hover:text-brand-700 font-bold flex items-center gap-1.5">
-              <i data-lucide="crosshair" class="w-4 h-4"></i>
-              <span>ดึงตำแหน่งปัจจุบัน</span>
-            </button>
-          </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <input type="number" step="any" id="latitude" placeholder="ละติจูด (Latitude) เช่น 13.606282"
-                class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm md:text-base font-mono focus:outline-none focus:ring-2 focus:ring-brand-500">
-            </div>
-            <div>
-              <input type="number" step="any" id="longitude" placeholder="ลองจิจูด (Longitude) เช่น 100.702812"
-                class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm md:text-base font-mono focus:outline-none focus:ring-2 focus:ring-brand-500">
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ระยะติดตั้งฮาร์ดแวร์ -->
-      <div class="space-y-4 border-t border-slate-100 pt-5">
-        <h3 class="text-sm md:text-base font-bold text-brand-600 flex items-center gap-2">
-          <i data-lucide="ruler" class="w-4 h-4"></i> ระยะการติดตั้งฮาร์ดแวร์เซนเซอร์
-        </h3>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs md:text-sm font-bold text-slate-700 mb-1">ระยะเซนเซอร์ถึงพื้นจุดต่ำสุด (cm)</label>
-            <input type="number" step="0.1" id="tankHeight" placeholder="เช่น 83" required
-              class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm md:text-base font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500">
-            <span class="text-[11px] md:text-xs text-slate-400 font-medium">ความสูงจากพื้นล่างสุดถึงหน้าตัวเซนเซอร์</span>
-          </div>
-
-          <div>
-            <label class="block text-xs md:text-sm font-bold text-slate-700 mb-1">ระยะเผื่อยอดบน / Offset (cm)</label>
-            <input type="number" step="0.1" id="sensorOffset" placeholder="เช่น 0" required
-              class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm md:text-base font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500">
-            <span class="text-[11px] md:text-xs text-slate-400 font-medium">ใส่ 0 หากวัดเทียบจากพื้นขึ้นมาตรงๆ</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- เกณฑ์ระดับน้ำ (Thresholds) -->
-      <div class="space-y-4 border-t border-slate-100 pt-5">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
-          <h3 class="text-sm md:text-base font-bold text-brand-600 flex items-center gap-2">
-            <i data-lucide="alert-triangle" class="w-4 h-4"></i> กำหนดเกณฑ์ระดับน้ำแจ้งเตือน (Threshold)
-          </h3>
-          <p class="text-xs md:text-sm text-slate-400 font-medium mt-0.5">ใช้สำหรับคำนวณสีสถานะ (ปกติ/เตือนภัย/วิกฤต) และวาดเส้นเกณฑ์บนหน้ากราฟประวัติย้อนหลัง (เว้นว่างได้ถ้าไม่ต้องการกำหนด)</p>
+          <label class="text-xs font-bold text-slate-700 mb-1.5 block">รหัสอุปกรณ์ (Device ID) *</label>
+          <input type="text" id="deviceIdInput" name="device_id" required placeholder="เช่น SPK-001" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-mono font-bold text-slate-900 uppercase focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
         </div>
 
+        <div>
+          <label class="text-xs font-bold text-slate-700 mb-1.5 block">ชื่อจุดตรวจวัด</label>
+          <input type="text" id="deviceNameInput" name="device_name" placeholder="เช่น บ่อพักน้ำแยกบางพลี" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-slate-700 mb-1.5 block">ประเภทสถานที่</label>
+          <select id="locationTypeInput" name="location_type" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <option value="ถนน">ถนน / ทางสัญจร</option>
+            <option value="ท่อระบายน้ำ">ท่อระบายน้ำ / บ่อพัก</option>
+            <option value="คลอง">คลอง / ลำรางสาธารณะ</option>
+            <option value="ชุมชน">พื้นที่ลุ่มต่ำชุมชน</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- พิกัดภูมิศาสตร์ (GPS) -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+            <span>ละติจูด (Latitude)</span>
+            <button type="button" onclick="getCurrentLocation()" class="text-brand-600 hover:underline text-[11px] font-bold flex items-center gap-1">
+              <i data-lucide="crosshair" class="w-3.5 h-3.5"></i> ดึงตำแหน่งปัจจุบัน
+            </button>
+          </label>
+          <input type="number" step="any" id="latitudeInput" name="latitude" placeholder="13.606" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-mono text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-slate-700 mb-1.5 block">ลองจิจูด (Longitude)</label>
+          <input type="number" step="any" id="longitudeInput" name="longitude" placeholder="100.702" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-mono text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+        </div>
+      </div>
+
+      <!-- ระยะการติดตั้งเซนเซอร์ -->
+      <div class="space-y-2 pt-2 border-t border-slate-100">
+        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+          <i data-lucide="ruler" class="w-4 h-4 text-brand-600"></i>
+          <span>ระยะการติดตั้งฮาร์ดแวร์เซนเซอร์</span>
+        </h3>
+
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div class="bg-amber-50/60 border border-amber-200/80 rounded-2xl p-4 space-y-1.5">
-            <label class="block text-xs md:text-sm font-bold text-amber-800 flex items-center gap-1.5">
-              <span class="w-3 h-3 rounded-full bg-amber-500"></span>
-              <span>เกณฑ์เตือนภัย (Warning Level)</span>
-            </label>
-            <div class="flex items-center gap-2">
-              <input type="number" step="0.1" id="warningThreshold" placeholder="เช่น 25"
-                class="w-full border border-amber-300 rounded-xl px-3.5 py-2 text-sm md:text-base font-bold text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500">
-              <span class="text-xs md:text-sm font-bold text-amber-700 shrink-0">ซม.</span>
-            </div>
-            <p class="text-[11px] text-amber-700/80">เมื่อน้ำลึกสูงกว่าหรือเท่ากับค่านี้</p>
+          <div>
+            <label class="text-xs font-bold text-slate-700 mb-1 block">ความลึกบ่อ/ระยะเซนเซอร์ถึงพื้นต่ำสุด (cm)</label>
+            <input type="number" step="any" id="tankHeightInput" name="tank_height_cm" value="83" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-mono font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <span class="text-[11px] text-slate-400 mt-1 block">ความสูงจากพื้นล่างสุดถึงหน้าตัวเซนเซอร์</span>
           </div>
 
-          <div class="bg-rose-50/60 border border-rose-200/80 rounded-2xl p-4 space-y-1.5">
-            <label class="block text-xs md:text-sm font-bold text-rose-800 flex items-center gap-1.5">
-              <span class="w-3 h-3 rounded-full bg-rose-500"></span>
-              <span>เกณฑ์วิกฤต (Critical Level)</span>
-            </label>
+          <div>
+            <label class="text-xs font-bold text-slate-700 mb-1 block">ระยะเผื่อยอดบน / Offset (cm)</label>
+            <input type="number" step="any" id="sensorOffsetInput" name="sensor_offset_cm" value="0" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-mono font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <span class="text-[11px] text-slate-400 mt-1 block">ใส่ 0 หากวัดเทียบจากพื้นขึ้นมาตรงๆ</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- กำหนดเกณฑ์ระดับน้ำแจ้งเตือน (Threshold) -->
+      <div class="space-y-2 pt-2 border-t border-slate-100">
+        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+          <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-500"></i>
+          <span>กำหนดเกณฑ์ระดับน้ำแจ้งเตือน (Threshold)</span>
+        </h3>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="bg-amber-50/70 border border-amber-200 p-3.5 rounded-2xl">
+            <label class="text-xs font-bold text-amber-900 mb-1 block">เกณฑ์เตือนภัย (Warning Level)</label>
             <div class="flex items-center gap-2">
-              <input type="number" step="0.1" id="criticalThreshold" placeholder="เช่น 50"
-                class="w-full border border-rose-300 rounded-xl px-3.5 py-2 text-sm md:text-base font-bold text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-rose-500">
-              <span class="text-xs md:text-sm font-bold text-rose-700 shrink-0">ซม.</span>
+              <input type="number" step="any" id="warningThresholdInput" name="warning_threshold_cm" value="25" class="w-full bg-white border border-amber-300 rounded-xl px-3 py-2 text-sm font-mono font-bold text-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+              <span class="text-xs font-bold text-amber-800">cm.</span>
             </div>
-            <p class="text-[11px] text-rose-700/80">เมื่อน้ำลึกสูงกว่าหรือเท่ากับค่านี้</p>
+            <span class="text-[10px] text-amber-700/80 mt-1 block">เมื่อน้ำลึกสูงกว่าหรือเท่ากับค่านี้</span>
+          </div>
+
+          <div class="bg-rose-50/70 border border-rose-200 p-3.5 rounded-2xl">
+            <label class="text-xs font-bold text-rose-900 mb-1 block">เกณฑ์วิกฤต (Critical Level)</label>
+            <div class="flex items-center gap-2">
+              <input type="number" step="any" id="criticalThresholdInput" name="critical_threshold_cm" value="50" class="w-full bg-white border border-rose-300 rounded-xl px-3 py-2 text-sm font-mono font-bold text-rose-900 focus:outline-none focus:ring-2 focus:ring-rose-500">
+              <span class="text-xs font-bold text-rose-800">cm.</span>
+            </div>
+            <span class="text-[10px] text-rose-700/80 mt-1 block">เมื่อน้ำลึกสูงกว่าหรือเท่ากับค่านี้</span>
           </div>
         </div>
       </div>
 
       <!-- รูปภาพจุดติดตั้ง -->
-      <div class="space-y-3 border-t border-slate-100 pt-5">
-        <label class="block text-xs md:text-sm font-bold text-slate-700">รูปภาพจุดติดตั้ง / สภาพหน้างาน</label>
+      <div class="space-y-2 pt-2 border-t border-slate-100">
+        <label class="text-xs font-bold text-slate-700 block">รูปภาพจุดติดตั้ง / สภาพหน้างาน</label>
         <div class="flex items-center gap-4">
-          <div id="imagePreviewContainer" class="w-24 h-24 md:w-28 md:h-28 rounded-2xl border-2 border-dashed border-slate-300 flex items-center justify-center bg-slate-50 overflow-hidden shrink-0 shadow-xs">
-            <span id="previewPlaceholder" class="text-xs text-slate-400 text-center px-2 font-medium">ไม่มีรูปภาพ</span>
-            <img id="imagePreview" src="" alt="พรีวิวรูปภาพ" class="w-full h-full object-cover hidden">
+          <div id="imagePreviewBox" class="w-24 h-24 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center overflow-hidden shrink-0">
+            <span id="noImageText" class="text-[11px] text-slate-400 text-center px-1">ไม่มีรูปภาพ</span>
+            <img id="imagePreview" src="" alt="preview" class="w-full h-full object-cover hidden">
           </div>
-          <div class="flex-1 space-y-1.5">
-            <input type="file" id="imageInput" accept="image/*" class="text-xs md:text-sm text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs md:file:text-sm file:font-bold file:bg-brand-50 file:text-brand-600 hover:file:bg-brand-100 cursor-pointer">
-            <p class="text-[11px] md:text-xs text-slate-400 font-medium">รองรับไฟล์ JPG, PNG หรือ WebP</p>
+          <div class="space-y-1">
+            <input type="file" id="imageInput" name="image" accept="image/*" onchange="handleImageSelect(event)" class="text-xs text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-brand-50 file:text-brand-600 hover:file:bg-brand-100 cursor-pointer">
+            <p class="text-[11px] text-slate-400">รองรับไฟล์ JPG, PNG หรือ WebP</p>
           </div>
         </div>
       </div>
 
-      <!-- ปุ่มบันทึก -->
-      <div class="flex items-center gap-3 pt-3">
-        <button type="submit" id="btnSubmit"
-            class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-bold py-3.5 px-6 rounded-2xl text-sm md:text-base transition duration-150 shadow-md shadow-brand-500/20 flex items-center justify-center gap-2">
-            <i data-lucide="save" class="w-5 h-5"></i>
-            <span>บันทึกการตั้งค่าจุดตรวจวัด</span>
+      <!-- ปุ่มบันทึก และ ปุ่มลบ -->
+      <div class="pt-4 border-t border-slate-100 flex items-center gap-3">
+        <button type="submit" class="flex-1 py-3 px-6 bg-brand-600 hover:bg-brand-700 text-white rounded-2xl text-sm font-bold transition flex items-center justify-center gap-2 shadow-md shadow-brand-500/20">
+          <i data-lucide="save" class="w-4 h-4"></i>
+          <span>บันทึกการตั้งค่าจุดตรวจวัด</span>
         </button>
-        
-        <button type="button" onclick="deleteCurrentDevice()"
-            class="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold py-3.5 px-5 rounded-2xl text-sm md:text-base transition flex items-center gap-2">
-            <i data-lucide="trash-2" class="w-5 h-5"></i>
-            <span>ลบ</span>
-        </button>
-    </div>
 
-      <div id="saveAlert" class="hidden text-sm md:text-base p-4 rounded-2xl bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold flex items-center gap-2">
-        <i data-lucide="check-circle" class="w-5 h-5 text-emerald-600"></i>
-        <span>บันทึกการตั้งค่าเรียบร้อยแล้ว! ระบบจะนำเกณฑ์ใหม่ไปคำนวณทันที</span>
+        <button type="button" onclick="deleteCurrentDevice()" id="btnDeleteDevice" class="py-3 px-6 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-2xl text-sm font-bold transition flex items-center justify-center gap-2">
+          <i data-lucide="trash-2" class="w-4 h-4"></i>
+          <span>ลบ</span>
+        </button>
       </div>
 
     </form>
 
   </main>
 
-  <!-- ================= 3. แถบเมนูด้านล่างสุด (Fixed Bottom Navigation) ================= -->
-  <nav class="fixed bottom-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-md border-t border-slate-200/90 px-4 md:px-8 flex items-center justify-around z-40 shadow-lg">
-    <a href="/index.html" class="flex items-center gap-2 py-2 px-5 md:px-6 rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-semibold text-xs md:text-sm transition duration-150">
+  <!-- ================= 3. NAVIGATION ล่างสุด ================= -->
+  <nav class="fixed bottom-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-md border-t border-slate-200/90 px-4 md:px-8 flex items-center justify-around z-40 shadow-lg font-sans">
+    <a href="/index.html" class="flex items-center gap-2 py-2 px-5 md:px-6 rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-semibold text-xs md:text-sm transition">
       <i data-lucide="layout-dashboard" class="w-4 h-4 md:w-5 md:h-5"></i>
       <span>ภาพรวมระบบ</span>
     </a>
 
-    <a href="/history.html" class="flex items-center gap-2 py-2 px-5 md:px-6 rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-semibold text-xs md:text-sm transition duration-150">
+    <a href="/pipe.html" class="flex items-center gap-2 py-2 px-5 md:px-6 rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-semibold text-xs md:text-sm transition">
+      <i data-lucide="paint-brush" class="w-4 h-4 md:w-5 md:h-5"></i>
+      <span>จำลองหน้าตัด</span>
+    </a>
+
+    <a href="/history.html" class="flex items-center gap-2 py-2 px-5 md:px-6 rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-semibold text-xs md:text-sm transition">
       <i data-lucide="line-chart" class="w-4 h-4 md:w-5 md:h-5"></i>
       <span>ข้อมูลย้อนหลัง</span>
     </a>
 
-    <a href="/admin.html" class="flex items-center gap-2 py-2 px-5 md:px-6 rounded-full bg-brand-50 text-brand-600 border border-brand-200/80 font-bold text-xs md:text-sm transition duration-150 shadow-sm">
+    <a href="/admin.html" class="flex items-center gap-2 py-2 px-5 md:px-6 rounded-full bg-brand-50 text-brand-600 border border-brand-200/80 font-bold text-xs md:text-sm transition shadow-sm">
       <i data-lucide="settings" class="w-4 h-4 md:w-5 md:h-5"></i>
-      <span>หน้าแอดมิน (ตั้งค่า)</span>
+      <span>ตั้งค่า</span>
     </a>
   </nav>
 
-  <!-- ================= JAVASCRIPT LOGIC ================= -->
+  <!-- ================= 4. JAVASCRIPT LOGIC ================= -->
   <script>
-    // -------------------------------------------------------------
-    // ระบบตรวจสอบสิทธิ์เข้าใช้งาน Admin (Auth Logic)
-    // -------------------------------------------------------------
-    const AUTH_USER = 'admin';
-    const AUTH_PASS = '129069';
+    let allDevices = [];
+    let whitelistItems = [];
 
-    const loginModal = document.getElementById('loginModal');
-    const adminContent = document.getElementById('adminContent');
-    const loginForm = document.getElementById('loginForm');
-    const loginError = document.getElementById('loginError');
+    // ----------------------------------------------------
+    // จัดการ Whitelist
+    // ----------------------------------------------------
+    async function loadWhitelist() {
+      try {
+        const res = await fetch('/api/whitelist');
+        whitelistItems = await res.json();
+        
+        document.getElementById('whitelistCount').innerText = whitelistItems.length;
+        const tbody = document.getElementById('whitelistTableBody');
 
-    function checkAuth() {
-      const isLogged = sessionStorage.getItem('isAdminLoggedIn');
-      if (isLogged === 'true') {
-        loginModal.classList.add('hidden');
-        adminContent.classList.remove('hidden');
-        loadAllDevices();
-      } else {
-        loginModal.classList.remove('hidden');
-        adminContent.classList.add('hidden');
+        if (!whitelistItems || whitelistItems.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4" class="py-6 text-center text-slate-400">ยังไม่มีอุปกรณ์ใน Whitelist (กรุณาเพิ่มอุปกรณ์ที่อนุญาต)</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = whitelistItems.map(item => `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="py-2.5 px-3 font-mono font-bold text-indigo-700">${item.device_id}</td>
+            <td class="py-2.5 px-3 text-slate-600">${item.description || '-'}</td>
+            <td class="py-2.5 px-3 text-slate-400 text-[11px]">${new Date(item.added_at).toLocaleDateString('th-TH')}</td>
+            <td class="py-2.5 px-3 text-right">
+              <button onclick="removeWhitelist('${item.device_id}')" class="text-rose-500 hover:text-rose-700 font-bold hover:underline p-1">
+                ลบออก
+              </button>
+            </td>
+          </tr>
+        `).join('');
+
+      } catch (err) {
+        console.error('Error loading whitelist:', err);
       }
     }
 
-    loginForm.addEventListener('submit', (e) => {
+    document.getElementById('whitelistForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const user = document.getElementById('loginUsername').value.trim();
-      const pass = document.getElementById('loginPassword').value.trim();
+      const idInput = document.getElementById('newWhitelistId');
+      const descInput = document.getElementById('newWhitelistDesc');
 
-      if (user === AUTH_USER && pass === AUTH_PASS) {
-        sessionStorage.setItem('isAdminLoggedIn', 'true');
-        loginError.classList.add('hidden');
-        loginModal.classList.add('hidden');
-        adminContent.classList.remove('hidden');
-        loadAllDevices();
-      } else {
-        loginError.classList.remove('hidden');
-        document.getElementById('loginPassword').value = '';
+      const devId = idInput.value.trim().toUpperCase();
+      if (!devId) return;
+
+      try {
+        const res = await fetch('/api/whitelist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ device_id: devId, description: descInput.value.trim() })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          idInput.value = '';
+          descInput.value = '';
+          await loadWhitelist();
+          await loadAllDevices();
+          alert(`เพิ่ม ${devId} เข้า Whitelist สำเร็จ`);
+        } else {
+          alert(data.error || 'เกิดข้อผิดพลาดในการเพิ่ม Whitelist');
+        }
+      } catch (err) {
+        console.error(err);
       }
     });
 
-    window.logoutAdmin = function() {
-      sessionStorage.removeItem('isAdminLoggedIn');
-      window.location.reload();
-    };
-
-    // -------------------------------------------------------------
-    // จัดการฟอร์มและการตั้งค่าอุปกรณ์
-    // -------------------------------------------------------------
-    const quickDeviceSelect = document.getElementById('quickDeviceSelect');
-    const deviceIdInput = document.getElementById('deviceId');
-    const locationTypeInput = document.getElementById('locationType');
-    const deviceNameInput = document.getElementById('deviceName');
-    const latitudeInput = document.getElementById('latitude');
-    const longitudeInput = document.getElementById('longitude');
-    const tankHeightInput = document.getElementById('tankHeight');
-    const sensorOffsetInput = document.getElementById('sensorOffset');
-    const warningThresholdInput = document.getElementById('warningThreshold');
-    const criticalThresholdInput = document.getElementById('criticalThreshold');
-    const imageInput = document.getElementById('imageInput');
-    const imagePreview = document.getElementById('imagePreview');
-    const previewPlaceholder = document.getElementById('previewPlaceholder');
-    const fetchStatus = document.getElementById('fetchStatus');
-    const saveAlert = document.getElementById('saveAlert');
-    const btnGetCurrentLocation = document.getElementById('btnGetCurrentLocation');
-
-    let deviceCache = [];
-
-    // ดึงพิกัดจาก GPS
-    btnGetCurrentLocation.addEventListener('click', () => {
-      if (!navigator.geolocation) {
-        alert('เบราว์เซอร์ไม่รองรับการดึงพิกัด GPS');
+    async function removeWhitelist(devId) {
+      if (!confirm(`ต้องการลบ ${devId} ออกจาก Whitelist ใช่หรือไม่?\n(เมื่อลบแล้ว ข้อมูลที่ Gateway ส่งมาจากรหัสนี้จะถูกปฏิเสธทันที)`)) {
         return;
       }
-      btnGetCurrentLocation.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i><span>กำลังดึงตำแหน่ง...</span>`;
-      lucide.createIcons();
+      try {
+        const res = await fetch(`/api/whitelist/${encodeURIComponent(devId)}`, { method: 'DELETE' });
+        if (res.ok) {
+          await loadWhitelist();
+        } else {
+          alert('ไม่สามารถลบออกจาก Whitelist ได้');
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
 
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          latitudeInput.value = pos.coords.latitude.toFixed(6);
-          longitudeInput.value = pos.coords.longitude.toFixed(6);
-          btnGetCurrentLocation.innerHTML = `<i data-lucide="check" class="w-4 h-4 text-emerald-600"></i><span>ได้พิกัดแล้ว</span>`;
-          lucide.createIcons();
-          setTimeout(() => {
-            btnGetCurrentLocation.innerHTML = `<i data-lucide="crosshair" class="w-4 h-4"></i><span>ดึงตำแหน่งปัจจุบัน</span>`;
-            lucide.createIcons();
-          }, 3000);
-        },
-        (err) => {
-          alert('ไม่สามารถดึงตำแหน่งได้: ' + err.message);
-          btnGetCurrentLocation.innerHTML = `<i data-lucide="crosshair" class="w-4 h-4"></i><span>ดึงตำแหน่งปัจจุบัน</span>`;
-          lucide.createIcons();
-        },
-        { enableHighAccuracy: true }
-      );
-    });
+    // ----------------------------------------------------
+    // โหลดและเลือกอุปกรณ์มาแก้ไข
+    // ----------------------------------------------------
+    async function loadAllDevices() {
+      try {
+        const res = await fetch('/api/devices');
+        allDevices = await res.json();
+        const sel = document.getElementById('deviceSelector');
 
-    // พรีวิวรูปภาพ
-    imageInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
+        sel.innerHTML = '<option value="">-- เลือกอุปกรณ์เพื่อแก้ไข --</option>' +
+          allDevices.map(d => `<option value="${d.device_id}">${d.device_name || d.device_id} (${d.device_id})</option>`).join('');
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function onSelectDevice(devId) {
+      if (!devId) {
+        resetForm();
+        return;
+      }
+      const dev = allDevices.find(d => d.device_id === devId);
+      if (!dev) return;
+
+      document.getElementById('deviceIdInput').value = dev.device_id;
+      document.getElementById('deviceNameInput').value = dev.device_name || '';
+      document.getElementById('locationTypeInput').value = dev.location_type || 'ถนน';
+      document.getElementById('latitudeInput').value = dev.latitude !== undefined ? dev.latitude : '';
+      document.getElementById('longitudeInput').value = dev.longitude !== undefined ? dev.longitude : '';
+      document.getElementById('tankHeightInput').value = dev.tank_height_cm !== undefined ? dev.tank_height_cm : 83;
+      document.getElementById('sensorOffsetInput').value = dev.sensor_offset_cm !== undefined ? dev.sensor_offset_cm : 0;
+      document.getElementById('warningThresholdInput').value = dev.warning_threshold_cm !== undefined ? dev.warning_threshold_cm : 25;
+      document.getElementById('criticalThresholdInput').value = dev.critical_threshold_cm !== undefined ? dev.critical_threshold_cm : 50;
+
+      const imgPreview = document.getElementById('imagePreview');
+      const noImgText = document.getElementById('noImageText');
+      if (dev.image_url) {
+        imgPreview.src = dev.image_url;
+        imgPreview.classList.remove('hidden');
+        noImgText.classList.add('hidden');
+      } else {
+        imgPreview.src = '';
+        imgPreview.classList.add('hidden');
+        noImgText.classList.remove('hidden');
+      }
+    }
+
+    function resetForm() {
+      document.getElementById('configForm').reset();
+      document.getElementById('deviceSelector').value = '';
+      document.getElementById('imagePreview').src = '';
+      document.getElementById('imagePreview').classList.add('hidden');
+      document.getElementById('noImageText').classList.remove('hidden');
+    }
+
+    function handleImageSelect(event) {
+      const file = event.target.files[0];
       if (file) {
         const reader = new FileReader();
-        reader.onload = (event) => {
-          imagePreview.src = event.target.result;
-          imagePreview.classList.remove('hidden');
-          previewPlaceholder.classList.add('hidden');
+        reader.onload = (e) => {
+          const imgPreview = document.getElementById('imagePreview');
+          imgPreview.src = e.target.result;
+          imgPreview.classList.remove('hidden');
+          document.getElementById('noImageText').classList.add('hidden');
         };
         reader.readAsDataURL(file);
       }
-    });
-
-    async function loadAllDevices() {
-      fetchStatus.innerText = 'กำลังดึงข้อมูล...';
-      try {
-        const res = await fetch('/api/devices');
-        deviceCache = await res.json();
-
-        quickDeviceSelect.innerHTML = '<option value="">-- เลือกจุดวัดเพื่อดึงข้อมูล --</option>' +
-          deviceCache.map(d => `<option value="${d.device_id}">${d.device_name || 'จุดวัด'} (${d.device_id})</option>`).join('');
-
-        populateFormByDeviceId(deviceIdInput.value.trim());
-      } catch (err) {
-        console.error(err);
-        fetchStatus.innerText = 'เชื่อมต่อไม่สำเร็จ';
-      }
     }
 
-    function populateFormByDeviceId(targetId) {
-      const dev = deviceCache.find(d => d.device_id === targetId);
-      if (dev) {
-        quickDeviceSelect.value = dev.device_id;
-        deviceNameInput.value = dev.device_name || '';
-        locationTypeInput.value = dev.location_type || 'ถนน';
-        latitudeInput.value = dev.latitude !== null && dev.latitude !== undefined ? dev.latitude : '';
-        longitudeInput.value = dev.longitude !== null && dev.longitude !== undefined ? dev.longitude : '';
-        tankHeightInput.value = dev.tank_height_cm !== undefined ? dev.tank_height_cm : 83;
-        sensorOffsetInput.value = dev.sensor_offset_cm !== undefined ? dev.sensor_offset_cm : 0;
-        
-        warningThresholdInput.value = dev.warning_threshold_cm !== null && dev.warning_threshold_cm !== undefined ? dev.warning_threshold_cm : '';
-        criticalThresholdInput.value = dev.critical_threshold_cm !== null && dev.critical_threshold_cm !== undefined ? dev.critical_threshold_cm : '';
-
-        if (dev.image_url) {
-          imagePreview.src = dev.image_url;
-          imagePreview.classList.remove('hidden');
-          previewPlaceholder.classList.add('hidden');
-        } else {
-          imagePreview.src = '';
-          imagePreview.classList.add('hidden');
-          previewPlaceholder.classList.remove('hidden');
-        }
-        fetchStatus.innerText = 'โหลดข้อมูลแล้ว';
+    function getCurrentLocation() {
+      if ('geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition((pos) => {
+          document.getElementById('latitudeInput').value = pos.coords.latitude.toFixed(6);
+          document.getElementById('longitudeInput').value = pos.coords.longitude.toFixed(6);
+        }, (err) => alert('ไม่สามารถดึงตำแหน่งพิกัด GPS ได้: ' + err.message));
       } else {
-        deviceNameInput.value = 'จุดวัด ' + targetId;
-        locationTypeInput.value = 'ถนน';
-        latitudeInput.value = '';
-        longitudeInput.value = '';
-        tankHeightInput.value = 83;
-        sensorOffsetInput.value = 0;
-        warningThresholdInput.value = '';
-        criticalThresholdInput.value = '';
-        imagePreview.src = '';
-        imagePreview.classList.add('hidden');
-        previewPlaceholder.classList.remove('hidden');
-        fetchStatus.innerText = 'จุดวัดใหม่';
+        alert('อุปกรณ์นี้ไม่รองรับการดึงพิกัด Geolocation');
       }
     }
 
-    quickDeviceSelect.addEventListener('change', (e) => {
-      if (e.target.value) {
-        deviceIdInput.value = e.target.value;
-        populateFormByDeviceId(e.target.value);
+    // ----------------------------------------------------
+    // ลบอุปกรณ์ที่เลือก (แก้ปัญหา 404 เรียบร้อย)
+    // ----------------------------------------------------
+    async function deleteCurrentDevice() {
+      const devId = document.getElementById('deviceIdInput').value.trim().toUpperCase();
+      if (!devId) {
+        alert('กรุณาเลือกหรือระบุรหัสอุปกรณ์ที่ต้องการลบ');
+        return;
       }
-    });
 
-    deviceIdInput.addEventListener('change', () => {
-      populateFormByDeviceId(deviceIdInput.value.trim());
-    });
+      if (!confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบอุปกรณ์ "${devId}" ออกจากระบบ?\n(การตั้งค่า, Whitelist และข้อมูลประวัติทั้งหมดของอุปกรณ์นี้จะถูกลบ)`)) {
+        return;
+      }
 
-    // บันทึกฟอร์ม
+      try {
+        const res = await fetch(`/api/devices/${encodeURIComponent(devId)}`, {
+          method: 'DELETE'
+        });
+
+        const data = await res.json();
+        if (res.ok && data.success) {
+          alert(`ลบอุปกรณ์ ${devId} เรียบร้อยแล้ว`);
+          resetForm();
+          await loadWhitelist();
+          await loadAllDevices();
+        } else {
+          alert(data.error || 'เกิดข้อผิดพลาดในการลบ');
+        }
+      } catch (err) {
+        console.error('Delete error:', err);
+        alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+      }
+    }
+
+    // ----------------------------------------------------
+    // ส่งข้อมูลบันทึก (POST /api/config)
+    // ----------------------------------------------------
     document.getElementById('configForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const formData = new FormData();
-      formData.append('device_id', deviceIdInput.value.trim());
-      formData.append('device_name', deviceNameInput.value.trim());
-      formData.append('location_type', locationTypeInput.value);
-      formData.append('latitude', latitudeInput.value.trim());
-      formData.append('longitude', longitudeInput.value.trim());
-      formData.append('tank_height_cm', tankHeightInput.value);
-      formData.append('sensor_offset_cm', sensorOffsetInput.value);
-      formData.append('warning_threshold_cm', warningThresholdInput.value.trim());
-      formData.append('critical_threshold_cm', criticalThresholdInput.value.trim());
 
-      if (imageInput.files[0]) {
-        formData.append('image', imageInput.files[0]);
+      const formData = new FormData();
+      formData.append('device_id', document.getElementById('deviceIdInput').value.trim().toUpperCase());
+      formData.append('device_name', document.getElementById('deviceNameInput').value.trim());
+      formData.append('location_type', document.getElementById('locationTypeInput').value);
+      formData.append('latitude', document.getElementById('latitudeInput').value.trim());
+      formData.append('longitude', document.getElementById('longitudeInput').value.trim());
+      formData.append('tank_height_cm', document.getElementById('tankHeightInput').value);
+      formData.append('sensor_offset_cm', document.getElementById('sensorOffsetInput').value);
+      formData.append('warning_threshold_cm', document.getElementById('warningThresholdInput').value);
+      formData.append('critical_threshold_cm', document.getElementById('criticalThresholdInput').value);
+
+      const fileInput = document.getElementById('imageInput');
+      if (fileInput.files[0]) {
+        formData.append('image', fileInput.files[0]);
       }
 
       try {
@@ -514,39 +517,30 @@
           method: 'POST',
           body: formData
         });
+
         const data = await res.json();
-        if (data.success) {
+        if (res.ok && data.success) {
+          const saveAlert = document.getElementById('saveAlert');
           saveAlert.classList.remove('hidden');
-          fetchStatus.innerText = 'บันทึกล่าสุด: ' + new Date().toLocaleTimeString('th-TH');
+          document.getElementById('fetchStatus').innerText = `บันทึกล่าสุด: ${new Date().toLocaleTimeString('th-TH')}`;
           setTimeout(() => saveAlert.classList.add('hidden'), 4000);
-          loadAllDevices();
+
+          await loadWhitelist();
+          await loadAllDevices();
+        } else {
+          alert(data.error || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
         }
       } catch (err) {
-        alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+        console.error('Submit error:', err);
+        alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
       }
     });
 
     window.addEventListener('DOMContentLoaded', () => {
       lucide.createIcons();
-      checkAuth();
+      loadWhitelist();
+      loadAllDevices();
     });
-
-    window.deleteCurrentDevice = async function() {
-    const targetId = deviceIdInput.value.trim();
-    if (!confirm(`คุณต้องการลบจุดวัด "${targetId}" ใช่หรือไม่? (ข้อมูลย้อนหลังทั้งหมดจะถูกลบด้วย)`)) return;
-
-    try {
-        const res = await fetch(`/api/devices/${encodeURIComponent(targetId)}`, { method: 'DELETE' });
-        const data = await res.json();
-        if (data.success) {
-        alert('ลบข้อมูลเรียบร้อยแล้ว');
-        loadAllDevices();
-        }
-    } catch (err) {
-        alert('เกิดข้อผิดพลาดในการลบ');
-    }
-    };
-
   </script>
 </body>
 </html>

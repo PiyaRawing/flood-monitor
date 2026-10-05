@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>จำลองหน้าตัดและระดับน้ำ | ระบบตรวจวัดระดับน้ำ</title>
+
+  <!-- Google Fonts: Noto Sans Thai & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { 
+            sans: ['"Noto Sans Thai"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace']
+          },
+          colors: { 
+            brand: { 
+              50: '#fff7ed', 
+              100: '#ffedd5', 
+              500: '#f97316', 
+              600: '#ea580c', 
+              700: '#c2410c' 
+            } 
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body { font-family: 'Noto Sans Thai', sans-serif; }
+    canvas { touch-action: none; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased flex flex-col min-h-screen pb-24 font-sans">
+
+  <!-- ================= 1. HEADER ================= -->
+  <header class="bg-white border-b border-slate-200/80 px-4 md:px-6 py-3 flex items-center justify-between shadow-xs sticky top-0 z-30">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-amber-500 flex items-center justify-center text-white shadow-md shadow-brand-500/20 shrink-0">
+        <i data-lucide="paint-brush" class="w-5 h-5"></i>
+      </div>
+      <div>
+        <h1 class="text-base md:text-lg font-bold text-slate-900 tracking-tight leading-tight">ระบบจำลองหน้าตัดและระดับน้ำ</h1>
+        <p class="text-xs text-slate-500 font-medium">ลากเส้นวิกฤตเพื่อปรับสเกลภาพ และวาดโครงสร้างหน้างานได้อิสระ</p>
+      </div>
+    </div>
+
+    <!-- Dropdown สลับจุดวัด & ปุ่มจัดการภาพวาด -->
+    <div class="flex items-center gap-2">
+      <button onclick="saveDrawing()" class="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl text-xs md:text-sm font-bold transition shadow-xs">
+        <i data-lucide="save" class="w-4 h-4"></i>
+        <span>บันทึกภาพ & สเกล</span>
+      </button>
+
+      <button onclick="clearCanvasPrompt()" class="flex items-center gap-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 px-3 py-1.5 rounded-xl text-xs md:text-sm font-bold transition shadow-xs">
+        <i data-lucide="trash-2" class="w-4 h-4"></i>
+        <span>ล้างกระดาน</span>
+      </button>
+
+      <select id="deviceSelector" class="bg-slate-50 hover:bg-slate-100 border border-slate-300 text-slate-900 text-xs md:text-sm font-bold rounded-xl px-3.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
+        <option value="">กำลังโหลดรายชื่อจุดวัด...</option>
+      </select>
+    </div>
+  </header>
+
+  <!-- ================= 2. MAIN WORKSPACE ================= -->
+  <main class="flex-1 max-w-5xl w-full mx-auto p-4 md:p-6 space-y-4 font-sans">
+    
+    <!-- แถบข้อมูลสรุปด้านบน พร้อมเวลาอัปเดต -->
+    <div class="bg-white p-3.5 md:p-4 rounded-2xl shadow-xs border border-slate-200/80 flex flex-wrap items-center justify-between gap-3 text-xs md:text-sm">
+      <div class="flex items-center gap-2.5">
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span class="font-bold text-slate-700">จุดวัด:</span>
+        <span id="txtDeviceId" class="font-mono font-bold text-brand-600 text-sm md:text-base">-</span>
+        <span id="txtDeviceName" class="text-slate-500 font-medium">(-)</span>
+        <span id="txtLocationBadge" class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 font-bold text-xs">-</span>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <div class="flex items-center gap-1.5 bg-slate-50 px-3 py-1 rounded-xl border border-slate-200 text-slate-600">
+          <i data-lucide="clock" class="w-3.5 h-3.5 text-brand-600"></i>
+          <span class="text-[11px] font-medium">อัปเดตล่าสุด:</span>
+          <span id="txtLastUpdate" class="font-mono font-bold text-[11px] text-slate-800">กำลังเชื่อมต่อ...</span>
+        </div>
+
+        <div class="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-xl border border-slate-200">
+          <i data-lucide="git-branch" class="w-3.5 h-3.5 text-indigo-500"></i>
+          <span class="text-[11px] text-slate-500 font-medium">เส้นทาง:</span>
+          <span id="txtMeshPath" class="font-mono font-bold text-[11px] text-indigo-600">Direct</span>
+        </div>
+
+        <div class="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-xl border border-slate-200">
+          <i data-lucide="battery" class="w-3.5 h-3.5 text-emerald-500"></i>
+          <span id="txtBattery" class="font-mono font-bold text-[11px] text-emerald-600">- %</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= TOOLBAR แถบเครื่องมือวาดรูป ================= -->
+    <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs">
+      
+      <!-- หมวดเลือกโหมดเครื่องมือวาด -->
+      <div class="flex items-center gap-1.5 flex-wrap">
+        <span class="font-bold text-slate-600 mr-1 flex items-center gap-1"><i data-lucide="tool" class="w-3.5 h-3.5"></i> เครื่องมือ:</span>
+        <button onclick="setTool('pen')" id="toolPen" class="tool-btn px-3 py-1.5 rounded-xl font-bold bg-brand-600 text-white transition flex items-center gap-1">
+          <i data-lucide="edit-2" class="w-3.5 h-3.5"></i> ปากกาฟรีแฮนด์
+        </button>
+        <button onclick="setTool('line')" id="toolLine" class="tool-btn px-3 py-1.5 rounded-xl font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition flex items-center gap-1">
+          <i data-lucide="minus" class="w-3.5 h-3.5"></i> เส้นตรง
+        </button>
+        <button onclick="setTool('circle')" id="toolCircle" class="tool-btn px-3 py-1.5 rounded-xl font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition flex items-center gap-1">
+          <i data-lucide="circle" class="w-3.5 h-3.5"></i> วงกลม
+        </button>
+        <button onclick="setTool('soil')" id="toolSoil" class="tool-btn px-3 py-1.5 rounded-xl font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition flex items-center gap-1">
+          <span class="w-3 h-3 rounded-full bg-[#6e3507] inline-block"></span> วาดดิน
+        </button>
+        <button onclick="setTool('eraser')" id="toolEraser" class="tool-btn px-3 py-1.5 rounded-xl font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition flex items-center gap-1">
+          <i data-lucide="eraser" class="w-3.5 h-3.5"></i> ยางลบ
+        </button>
+      </div>
+
+      <!-- หมวดเลือกสีปากกา -->
+      <div class="flex items-center gap-2">
+        <span class="font-bold text-slate-600">สี:</span>
+        <div class="flex items-center gap-1.5">
+          <button onclick="setColor('#000000')" class="w-6 h-6 rounded-full bg-black border-2 border-white shadow-xs focus:ring-2 focus:ring-brand-500" title="ดำ"></button>
+          <button onclick="setColor('#6e3507')" class="w-6 h-6 rounded-full bg-[#6e3507] border-2 border-white shadow-xs focus:ring-2 focus:ring-brand-500" title="น้ำตาล"></button>
+          <button onclick="setColor('#00b955')" class="w-6 h-6 rounded-full bg-[#00b955] border-2 border-white shadow-xs focus:ring-2 focus:ring-brand-500" title="เขียว"></button>
+          <button onclick="setColor('#64748b')" class="w-6 h-6 rounded-full bg-[#64748b] border-2 border-white shadow-xs focus:ring-2 focus:ring-brand-500" title="เทา"></button>
+          <button onclick="setColor('#f97316')" class="w-6 h-6 rounded-full bg-[#f97316] border-2 border-white shadow-xs focus:ring-2 focus:ring-brand-500" title="ส้ม"></button>
+          <input type="color" id="customColorPicker" onchange="setColor(this.value)" class="w-7 h-7 rounded-lg border-0 cursor-pointer p-0 bg-transparent">
+        </div>
+      </div>
+
+      <!-- หมวดขนาดเส้น -->
+      <div class="flex items-center gap-2">
+        <span class="font-bold text-slate-600">ขนาด:</span>
+        <input type="range" id="brushSize" min="2" max="60" value="8" oninput="updateBrushSize(this.value)" class="w-24 accent-brand-600 cursor-pointer">
+        <span id="brushSizeVal" class="font-mono font-bold text-slate-700 w-8">8px</span>
+      </div>
+    </div>
+
+    <!-- ================= CANVAS STAGE ================= -->
+    <div id="stageContainer" class="relative w-full rounded-3xl overflow-hidden border border-slate-300 shadow-md bg-[#a4c5f9] select-none flex items-center justify-center">
+      
+      <!-- ชั้นที่ 1: Canvas น้ำ (Water Layer ด้านหลัง) -->
+      <canvas id="waterCanvas" width="1000" height="560" class="absolute inset-0 w-full h-full pointer-events-none z-0"></canvas>
+
+      <!-- ชั้นที่ 2: Canvas ภาพวาดจริง (Drawing Layer) -->
+      <canvas id="drawCanvas" width="1000" height="560" class="relative w-full h-full z-10 cursor-crosshair"></canvas>
+
+      <!-- ชั้นที่ 3: Canvas แสดงพรีวิวขณะลากเส้นตรง/วงกลม -->
+      <canvas id="previewCanvas" width="1000" height="560" class="absolute inset-0 w-full h-full pointer-events-none z-15"></canvas>
+
+      <!-- เส้นระดับวิกฤต (ลากขึ้น-ลงได้อิสระเพื่อปรับสเกลความสูงภาพ) -->
+      <div id="dragMarkerCrit" class="absolute left-0 right-0 z-25 flex items-center justify-between cursor-ns-resize group" style="top: 200px;">
+        <div class="h-0.5 w-full bg-rose-600 shadow-xs border-b-2 border-dashed border-rose-500"></div>
+        <div class="bg-rose-600 hover:bg-rose-700 text-white font-sans text-xs font-bold px-3 py-1 rounded-l-xl shadow-md shrink-0 flex items-center gap-1.5 transition select-none">
+          <i data-lucide="move-vertical" class="w-3.5 h-3.5"></i>
+          <span>วิกฤต: <b id="txtCritValBadge" class="font-mono text-sm font-black">150</b> cm</span>
+          <span class="text-[9px] text-rose-200 font-normal hidden sm:inline">(ลากปรับสเกล)</span>
+        </div>
+      </div>
+
+      <!-- เส้นระดับเตือนภัย (ปรับตามสเกลอัตโนมัติ) -->
+      <div id="markerWarn" class="absolute left-0 right-0 border-b-2 border-dashed border-amber-500 z-20 pointer-events-none flex items-center justify-end pr-4 transition-all duration-300" style="top: 320px;">
+        <span class="text-[10px] font-bold text-white bg-amber-500 font-sans px-2.5 py-0.5 rounded-lg shadow-xs">
+          เตือนภัย: <b id="txtWarnValBadge" class="font-mono text-xs font-black">100</b> cm
+        </span>
+      </div>
+
+      <!-- จุดวัด (เซนเซอร์ส้ม) ลากย้ายตำแหน่งได้ -->
+      <div id="dragSensor" class="absolute z-30 cursor-grab active:cursor-grabbing flex flex-col items-center" style="left: 170px; top: 120px;">
+        <span class="text-[10px] font-bold text-amber-950 bg-amber-100/95 border border-amber-300 px-2 py-0.5 rounded-md mb-1 shadow-xs pointer-events-none font-sans">
+          จุดวัด
+        </span>
+        <div class="w-8 h-8 rounded-full bg-[#f97316] border-2 border-white shadow-lg flex items-center justify-center animate-bounce pointer-events-none">
+          <div class="w-2.5 h-2.5 rounded-full bg-white"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ================= 3. การ์ดตัวเลขสรุปสถานะ (Google Fonts + หน่วย cm) ================= -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 font-sans">
+      <!-- 1. ระดับน้ำปัจจุบัน -->
+      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+        <div>
+          <span class="text-xs font-bold text-slate-500 block font-sans tracking-tight">ระดับน้ำปัจจุบัน</span>
+          <div class="flex items-baseline gap-2 mt-1">
+            <span id="cardWaterDepth" class="text-4xl md:text-5xl font-extrabold text-slate-900 font-mono tracking-tight">-</span>
+            <span class="text-slate-500 text-base font-bold font-sans">cm</span>
+          </div>
+          <span class="text-[11px] text-slate-400 mt-1 block font-sans font-medium">คำนวณจากระดับต่ำสุด (ก้นบ่อ)</span>
+        </div>
+        <span class="p-3.5 rounded-2xl bg-blue-50 text-blue-600 shrink-0"><i data-lucide="waves" class="w-7 h-7"></i></span>
+      </div>
+
+      <!-- 2. ระยะห่างถึงเกณฑ์วิกฤต -->
+      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+        <div>
+          <span class="text-xs font-bold text-slate-500 block font-sans tracking-tight">ระยะห่างถึงเกณฑ์วิกฤต</span>
+          <div class="flex items-baseline gap-2 mt-1">
+            <span id="cardBelowCrit" class="text-4xl md:text-5xl font-extrabold text-emerald-600 font-mono tracking-tight">-</span>
+            <span class="text-slate-500 text-base font-bold font-sans">cm</span>
+          </div>
+          <span class="text-[11px] text-slate-400 mt-1 block font-sans font-medium">เกณฑ์วิกฤตตั้งไว้ที่ <b id="txtCritSettingCm" class="font-mono text-slate-700 font-bold">-</b> cm</span>
+        </div>
+        <span id="cardCritBadgeIcon" class="p-3.5 rounded-2xl bg-emerald-50 text-emerald-600 shrink-0"><i data-lucide="shield-check" class="w-7 h-7"></i></span>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ================= 4. NAVIGATION ล่างสุด ================= -->
+  <nav class="fixed bottom-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-md border-t border-slate-200/90 px-4 md:px-8 flex items-center justify-around z-40 shadow-lg font-sans">
+    <a href="/index.html" class="flex items-center gap-2 py-2 px-5 md:px-6 rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-semibold text-xs md:text-sm transition">
+      <i data-lucide="layout-dashboard" class="w-4 h-4 md:w-5 md:h-5"></i>
+      <span>ภาพรวมระบบ</span>
+    </a>
+
+    <a href="/pipe.html" class="flex items-center gap-2 py-2 px-5 md:px-6 rounded-full bg-brand-50 text-brand-600 border border-brand-200/80 font-bold text-xs md:text-sm transition shadow-sm">
+      <i data-lucide="paint-brush" class="w-4 h-4 md:w-5 md:h-5"></i>
+      <span>จำลองหน้าตัด</span>
+    </a>
+
+    <a href="/history.html" class="flex items-center gap-2 py-2 px-5 md:px-6 rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-semibold text-xs md:text-sm transition">
+      <i data-lucide="line-chart" class="w-4 h-4 md:w-5 md:h-5"></i>
+      <span>ข้อมูลย้อนหลัง</span>
+    </a>
+
+    <a href="/admin.html" class="flex items-center gap-2 py-2 px-5 md:px-6 rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-semibold text-xs md:text-sm transition">
+      <i data-lucide="settings" class="w-4 h-4 md:w-5 md:h-5"></i>
+      <span>ตั้งค่า</span>
+    </a>
+  </nav>
+
+  <!-- ================= 5. JAVASCRIPT LOGIC ================= -->
+  <script>
+    let devices = [];
+    let currentDeviceId = '';
+
+    const drawCanvas = document.getElementById('drawCanvas');
+    const drawCtx = drawCanvas.getContext('2d');
+    const waterCanvas = document.getElementById('waterCanvas');
+    const waterCtx = waterCanvas.getContext('2d');
+    const previewCanvas = document.getElementById('previewCanvas');
+    const previewCtx = previewCanvas.getContext('2d');
+
+    let currentTool = 'pen'; 
+    let currentColor = '#000000';
+    let currentSize = 8;
+    let isDrawing = false;
+    let startX = 0;
+    let startY = 0;
+    let lastX = 0;
+    let lastY = 0;
+
+    // ขอบเขตความสูงของ Canvas
+    const CANVAS_BOTTOM_Y = 530; // ระดับพื้นล่างสุด (0 cm)
+    let critLineY = 220;         // พิกัด Y เริ่มต้นของเส้นวิกฤต (ลากปรับได้)
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const paramDevice = urlParams.get('device');
+
+    // ----------------------------------------------------
+    // ลากปรับตำแหน่งเส้นวิกฤต (Dynamic Scale Calibration)
+    // ----------------------------------------------------
+    const critMarker = document.getElementById('dragMarkerCrit');
+    let isDraggingCrit = false;
+
+    critMarker.addEventListener('mousedown', (e) => {
+      isDraggingCrit = true;
+      e.stopPropagation();
+    });
+
+    critMarker.addEventListener('touchstart', (e) => {
+      isDraggingCrit = true;
+      e.stopPropagation();
+    });
+
+    window.addEventListener('mousemove', handleCritDrag);
+    window.addEventListener('touchmove', handleCritDrag);
+
+    function handleCritDrag(e) {
+      if (!isDraggingCrit) return;
+      const stageRect = document.getElementById('stageContainer').getBoundingClientRect();
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      let newY = clientY - stageRect.top;
+
+      // ล็อคขอบเขตการลากให้อยู่ในช่วง 60px ถึง 480px
+      newY = Math.max(60, Math.min(CANVAS_BOTTOM_Y - 40, newY));
+      critLineY = (newY / stageRect.height) * drawCanvas.height;
+
+      critMarker.style.top = `${newY}px`;
+      updateUI(); // คำนวณสเกลภาพและน้ำใหม่ทันที
+    }
+
+    window.addEventListener('mouseup', () => isDraggingCrit = false);
+    window.addEventListener('touchend', () => isDraggingCrit = false);
+
+    // ----------------------------------------------------
+    // จัดการเครื่องมือวาดรูป
+    // ----------------------------------------------------
+    function setTool(tool) {
+      currentTool = tool;
+      document.querySelectorAll('.tool-btn').forEach(btn => {
+        btn.className = 'tool-btn px-3 py-1.5 rounded-xl font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition flex items-center gap-1 font-sans';
+      });
+
+      const activeBtn = {
+        'pen': 'toolPen',
+        'line': 'toolLine',
+        'circle': 'toolCircle',
+        'soil': 'toolSoil',
+        'eraser': 'toolEraser'
+      }[tool];
+
+      if (activeBtn) {
+        if (tool === 'soil') {
+          document.getElementById(activeBtn).className = 'tool-btn px-3 py-1.5 rounded-xl font-bold bg-[#6e3507] text-white transition flex items-center gap-1 font-sans';
+        } else if (tool === 'eraser') {
+          document.getElementById(activeBtn).className = 'tool-btn px-3 py-1.5 rounded-xl font-bold bg-rose-600 text-white transition flex items-center gap-1 font-sans';
+        } else {
+          document.getElementById(activeBtn).className = 'tool-btn px-3 py-1.5 rounded-xl font-bold bg-brand-600 text-white transition flex items-center gap-1 font-sans';
+        }
+      }
+
+      drawCanvas.style.cursor = (tool === 'eraser') ? 'cell' : 'crosshair';
+    }
+
+    function setColor(color) {
+      currentColor = color;
+      if (currentTool === 'eraser') setTool('pen');
+    }
+
+    function updateBrushSize(val) {
+      currentSize = val;
+      document.getElementById('brushSizeVal').innerText = `${val}px`;
+    }
+
+    function getCoords(e) {
+      const rect = drawCanvas.getBoundingClientRect();
+      const scaleX = drawCanvas.width / rect.width;
+      const scaleY = drawCanvas.height / rect.height;
+
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+      return {
+        x: (clientX - rect.left) * scaleX,
+        y: (clientY - rect.top) * scaleY
+      };
+    }
+
+    drawCanvas.addEventListener('mousedown', handleStart);
+    drawCanvas.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleEnd);
+
+    drawCanvas.addEventListener('touchstart', handleStart);
+    drawCanvas.addEventListener('touchmove', handleMove);
+    window.addEventListener('touchend', handleEnd);
+
+    function handleStart(e) {
+      isDrawing = true;
+      const { x, y } = getCoords(e);
+      startX = x;
+      startY = y;
+      lastX = x;
+      lastY = y;
+
+      if (currentTool === 'pen' || currentTool === 'soil' || currentTool === 'eraser') {
+        drawFreehand(x, y);
+      }
+    }
+
+    function handleMove(e) {
+      if (!isDrawing) return;
+      e.preventDefault();
+      const { x, y } = getCoords(e);
+
+      if (currentTool === 'pen' || currentTool === 'soil' || currentTool === 'eraser') {
+        drawFreehand(x, y);
+      } else if (currentTool === 'line' || currentTool === 'circle') {
+        drawShapePreview(x, y);
+      }
+    }
+
+    function handleEnd(e) {
+      if (!isDrawing) return;
+      isDrawing = false;
+
+      previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+
+      if (currentTool === 'line') {
+        commitLine(startX, startY, lastX, lastY);
+      } else if (currentTool === 'circle') {
+        commitCircle(startX, startY, lastX, lastY);
+      }
+    }
+
+    function drawFreehand(x, y) {
+      drawCtx.beginPath();
+      drawCtx.moveTo(lastX, lastY);
+      drawCtx.lineTo(x, y);
+
+      if (currentTool === 'eraser') {
+        drawCtx.globalCompositeOperation = 'destination-out';
+        drawCtx.strokeStyle = 'rgba(0,0,0,1)';
+        drawCtx.lineWidth = currentSize * 2.5;
+      } else {
+        drawCtx.globalCompositeOperation = 'source-over';
+        drawCtx.strokeStyle = (currentTool === 'soil') ? '#6e3507' : currentColor;
+        drawCtx.lineWidth = currentSize;
+      }
+
+      drawCtx.lineCap = 'round';
+      drawCtx.lineJoin = 'round';
+      drawCtx.stroke();
+
+      lastX = x;
+      lastY = y;
+    }
+
+    function drawShapePreview(currentX, currentY) {
+      previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+      previewCtx.beginPath();
+      previewCtx.strokeStyle = currentColor;
+      previewCtx.lineWidth = currentSize;
+      previewCtx.lineCap = 'round';
+
+      if (currentTool === 'line') {
+        previewCtx.moveTo(startX, startY);
+        previewCtx.lineTo(currentX, currentY);
+        previewCtx.stroke();
+      } else if (currentTool === 'circle') {
+        const radius = Math.hypot(currentX - startX, currentY - startY);
+        previewCtx.arc(startX, startY, radius, 0, Math.PI * 2);
+        previewCtx.stroke();
+      }
+
+      lastX = currentX;
+      lastY = currentY;
+    }
+
+    function commitLine(x1, y1, x2, y2) {
+      drawCtx.globalCompositeOperation = 'source-over';
+      drawCtx.beginPath();
+      drawCtx.moveTo(x1, y1);
+      drawCtx.lineTo(x2, y2);
+      drawCtx.strokeStyle = currentColor;
+      drawCtx.lineWidth = currentSize;
+      drawCtx.lineCap = 'round';
+      drawCtx.stroke();
+    }
+
+    function commitCircle(x1, y1, x2, y2) {
+      drawCtx.globalCompositeOperation = 'source-over';
+      const radius = Math.hypot(x2 - x1, y2 - y1);
+      drawCtx.beginPath();
+      drawCtx.arc(x1, y1, radius, 0, Math.PI * 2);
+      drawCtx.strokeStyle = currentColor;
+      drawCtx.lineWidth = currentSize;
+      drawCtx.stroke();
+    }
+
+    function clearCanvasPrompt() {
+      if (confirm('คุณต้องการล้างภาพวาดทั้งหมดบนกระดานใช่หรือไม่?')) {
+        drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+        previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+        localStorage.removeItem(`draw_img_${currentDeviceId}`);
+      }
+    }
+
+    function saveDrawing() {
+      const dataUrl = drawCanvas.toDataURL('image/png');
+      localStorage.setItem(`draw_img_${currentDeviceId}`, dataUrl);
+
+      // บันทึกตำแหน่งเซนเซอร์และตำแหน่งเส้นวิกฤต
+      const sensorEl = document.getElementById('dragSensor');
+      const sensorPos = { left: sensorEl.style.left, top: sensorEl.style.top };
+      localStorage.setItem(`sensor_pos_${currentDeviceId}`, JSON.stringify(sensorPos));
+      localStorage.setItem(`crit_line_y_${currentDeviceId}`, critLineY);
+
+      alert('บันทึกภาพวาดและสเกลเส้นวิกฤตเรียบร้อยแล้ว!');
+    }
+
+    function loadSavedDrawing(devId) {
+      drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+      const saved = localStorage.getItem(`draw_img_${devId}`);
+      if (saved) {
+        const img = new Image();
+        img.onload = () => drawCtx.drawImage(img, 0, 0);
+        img.src = saved;
+      } else {
+        drawDefaultPresetGuide();
+      }
+
+      const savedPos = localStorage.getItem(`sensor_pos_${devId}`);
+      if (savedPos) {
+        try {
+          const pos = JSON.parse(savedPos);
+          document.getElementById('dragSensor').style.left = pos.left;
+          document.getElementById('dragSensor').style.top = pos.top;
+        } catch(e){}
+      }
+
+      const savedCritY = localStorage.getItem(`crit_line_y_${devId}`);
+      if (savedCritY) {
+        critLineY = Number(savedCritY);
+      }
+    }
+
+    function drawDefaultPresetGuide() {
+      drawCtx.globalCompositeOperation = 'source-over';
+      drawCtx.lineCap = 'round';
+      drawCtx.lineJoin = 'round';
+
+      // ชั้นดิน
+      drawCtx.fillStyle = '#6e3507';
+      drawCtx.fillRect(0, 250, drawCanvas.width, 310);
+
+      // โพรงทางน้ำซ้าย
+      drawCtx.clearRect(70, 250, 220, 270);
+      drawCtx.strokeStyle = '#000000';
+      drawCtx.lineWidth = 6;
+      drawCtx.strokeRect(70, 250, 220, 270);
+
+      // โพรงทางน้ำขวา
+      drawCtx.clearRect(290, 340, 640, 110);
+      drawCtx.strokeRect(290, 340, 640, 110);
+
+      // ถนน
+      drawCtx.fillStyle = '#0f172a';
+      drawCtx.fillRect(520, 240, 480, 14);
+
+      // ต้นไม้
+      drawCtx.fillStyle = '#00b955';
+      drawCtx.beginPath();
+      drawCtx.arc(430, 140, 55, 0, Math.PI * 2);
+      drawCtx.fill();
+
+      // คน
+      drawCtx.strokeStyle = '#0f172a';
+      drawCtx.lineWidth = 3;
+      drawCtx.beginPath();
+      drawCtx.arc(670, 110, 14, 0, Math.PI * 2);
+      drawCtx.stroke();
+      drawCtx.strokeRect(660, 125, 20, 45);
+      drawCtx.moveTo(665, 170); drawCtx.lineTo(665, 240);
+      drawCtx.moveTo(675, 170); drawCtx.lineTo(675, 240);
+      drawCtx.stroke();
+    }
+
+    // ----------------------------------------------------
+    // ลากย้ายตำแหน่งจุดวัด (เซนเซอร์ส้ม)
+    // ----------------------------------------------------
+    const sensorEl = document.getElementById('dragSensor');
+    let isDraggingSensor = false;
+    let sOffset = { x: 0, y: 0 };
+
+    sensorEl.addEventListener('mousedown', (e) => {
+      isDraggingSensor = true;
+      const rect = sensorEl.getBoundingClientRect();
+      sOffset.x = e.clientX - rect.left;
+      sOffset.y = e.clientY - rect.top;
+      e.stopPropagation();
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDraggingSensor) return;
+      const parentRect = sensorEl.parentElement.getBoundingClientRect();
+      let nx = e.clientX - parentRect.left - sOffset.x;
+      let ny = e.clientY - parentRect.top - sOffset.y;
+
+      nx = Math.max(0, Math.min(parentRect.width - 50, nx));
+      ny = Math.max(0, Math.min(parentRect.height - 50, ny));
+
+      sensorEl.style.left = `${nx}px`;
+      sensorEl.style.top = `${ny}px`;
+    });
+
+    window.addEventListener('mouseup', () => isDraggingSensor = false);
+
+    // ----------------------------------------------------
+    // เรนเดอร์มวลน้ำ โดยอิงสเกลความสูงจากพื้นถึงเส้นวิกฤต
+    // ----------------------------------------------------
+    function renderWater(waterDepthCm, critCm, warnCm) {
+      waterCtx.clearRect(0, 0, waterCanvas.width, waterCanvas.height);
+
+      // สเกล: ระยะจาก CANVAS_BOTTOM_Y ถึง critLineY เท่ากับค่า critCm
+      const scaleHeightPx = CANVAS_BOTTOM_Y - critLineY;
+      const pxPerCm = scaleHeightPx / critCm;
+
+      // คำนวณพิกัด Y ของผิวน้ำ
+      const waterHeightPx = waterDepthCm * pxPerCm;
+      const waterSurfaceY = Math.max(20, CANVAS_BOTTOM_Y - waterHeightPx);
+
+      const isCrit = waterDepthCm >= critCm;
+      const isWarn = waterDepthCm >= warnCm;
+
+      let waterColor = '#3b82f6';
+      if (isCrit) waterColor = '#e11d48';
+      else if (isWarn) waterColor = '#d97706';
+
+      // มวลน้ำ
+      waterCtx.fillStyle = waterColor;
+      waterCtx.fillRect(0, waterSurfaceY, waterCanvas.width, CANVAS_BOTTOM_Y - waterSurfaceY);
+
+      // เส้นผิวน้ำ
+      waterCtx.strokeStyle = isCrit ? '#f43f5e' : (isWarn ? '#f59e0b' : '#60a5fa');
+      waterCtx.lineWidth = 4;
+      waterCtx.beginPath();
+      waterCtx.moveTo(0, waterSurfaceY);
+      waterCtx.lineTo(waterCanvas.width, waterSurfaceY);
+      waterCtx.stroke();
+    }
+
+    // ----------------------------------------------------
+    // ซิงก์ข้อมูล API & อัปเดต UI (Google Fonts + หน่วย cm)
+    // ----------------------------------------------------
+    async function updateUI() {
+      if (!currentDeviceId) return;
+
+      try {
+        const res = await fetch('/api/devices');
+        devices = await res.json();
+        const dev = devices.find(d => d.device_id === currentDeviceId);
+        if (!dev) return;
+
+        const t = dev.latest_telemetry;
+        
+        // เกณฑ์วิกฤต และ เกณฑ์เตือนภัย (หน่วย cm)
+        const critCm = Number(dev.critical_threshold_cm) || 150.0;
+        const warnCm = Number(dev.warning_threshold_cm) || 100.0;
+
+        // ระดับน้ำจริง (หน่วย cm)
+        const waterDepthCm = (t && t.water_depth_cm !== null && t.water_depth_cm !== undefined) ? Number(t.water_depth_cm) : 0.0;
+
+        // ระยะห่างถึงเกณฑ์วิกฤต (หน่วย cm)
+        const belowCritCm = Math.max(0, Math.round((critCm - waterDepthCm) * 10) / 10);
+
+        // คำนวณตำแหน่งเส้นวิกฤต & เตือนภัย ในหน้าจอ
+        const stageH = document.getElementById('stageContainer').getBoundingClientRect().height || 560;
+        const critPosPx = (critLineY / drawCanvas.height) * stageH;
+        critMarker.style.top = `${critPosPx}px`;
+
+        // เส้นเตือนภัยจะอยู่ต่ำกว่าเส้นวิกฤตตามสัดส่วน (warnCm / critCm)
+        const scaleHeightPx = CANVAS_BOTTOM_Y - critLineY;
+        const warnLineY = CANVAS_BOTTOM_Y - (warnCm * (scaleHeightPx / critCm));
+        const warnPosPx = (warnLineY / drawCanvas.height) * stageH;
+        document.getElementById('markerWarn').style.top = `${warnPosPx}px`;
+
+        document.getElementById('txtCritValBadge').innerText = Math.round(critCm);
+        document.getElementById('txtWarnValBadge').innerText = Math.round(warnCm);
+        document.getElementById('txtCritSettingCm').innerText = Math.round(critCm);
+
+        // อัปเดตข้อความทั่วไป
+        document.getElementById('txtDeviceId').innerText = dev.device_id;
+        document.getElementById('txtDeviceName').innerText = `(${dev.device_name || 'ไม่ระบุชื่อ'})`;
+        document.getElementById('txtLocationBadge').innerText = dev.location_type || 'ถนน';
+
+        // การ์ดระดับน้ำปัจจุบัน (ใช้หน่วย cm)
+        document.getElementById('cardWaterDepth').innerText = waterDepthCm.toFixed(1);
+
+        // การ์ดระยะห่างถึงเกณฑ์วิกฤต (ใช้หน่วย cm)
+        document.getElementById('cardBelowCrit').innerText = belowCritCm.toFixed(1);
+
+        const critBadge = document.getElementById('cardCritBadgeIcon');
+        if (waterDepthCm >= critCm) {
+          document.getElementById('cardBelowCrit').className = 'text-4xl md:text-5xl font-extrabold text-rose-600 font-mono tracking-tight';
+          critBadge.className = 'p-3.5 rounded-2xl bg-rose-50 text-rose-600 shrink-0';
+          critBadge.innerHTML = '<i data-lucide="alert-octagon" class="w-7 h-7"></i>';
+        } else if (waterDepthCm >= warnCm) {
+          document.getElementById('cardBelowCrit').className = 'text-4xl md:text-5xl font-extrabold text-amber-600 font-mono tracking-tight';
+          critBadge.className = 'p-3.5 rounded-2xl bg-amber-50 text-amber-600 shrink-0';
+          critBadge.innerHTML = '<i data-lucide="alert-triangle" class="w-7 h-7"></i>';
+        } else {
+          document.getElementById('cardBelowCrit').className = 'text-4xl md:text-5xl font-extrabold text-emerald-600 font-mono tracking-tight';
+          critBadge.className = 'p-3.5 rounded-2xl bg-emerald-50 text-emerald-600 shrink-0';
+          critBadge.innerHTML = '<i data-lucide="shield-check" class="w-7 h-7"></i>';
+        }
+
+        // สถานะแบตเตอรี่ & เครือข่าย
+        document.getElementById('txtBattery').innerText = t && t.battery_percent ? `${t.battery_percent}%` : '- %';
+        document.getElementById('txtMeshPath').innerText = t && t.hops_path ? t.hops_path : 'Direct';
+
+        if (t && t.created_at) {
+          const d = new Date(t.created_at);
+          document.getElementById('txtLastUpdate').innerText = `${d.toLocaleTimeString('th-TH')} (${d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })})`;
+        } else {
+          document.getElementById('txtLastUpdate').innerText = 'ไม่มีข้อมูล';
+        }
+
+        // วาดระดับผิวน้ำ
+        renderWater(waterDepthCm, critCm, warnCm);
+
+        lucide.createIcons();
+      } catch (e) {
+        console.error('Error updating UI:', e);
+      }
+    }
+
+    async function loadDevices() {
+      try {
+        const res = await fetch('/api/devices');
+        devices = await res.json();
+        const sel = document.getElementById('deviceSelector');
+
+        if (!devices || devices.length === 0) {
+          sel.innerHTML = '<option value="">ไม่พบจุดวัดในระบบ</option>';
+          return;
+        }
+
+        sel.innerHTML = devices.map(d => `
+          <option value="${d.device_id}">${d.device_name || d.device_id} (${d.location_type || 'ถนน'})</option>
+        `).join('');
+
+        if (paramDevice && devices.some(d => d.device_id === paramDevice)) {
+          sel.value = paramDevice;
+        }
+        currentDeviceId = sel.value;
+
+        loadSavedDrawing(currentDeviceId);
+        updateUI();
+      } catch (e) {
+        console.error('Error loading devices:', e);
+      }
+    }
+
+    document.getElementById('deviceSelector').addEventListener('change', (e) => {
+      currentDeviceId = e.target.value;
+      const newUrl = `${window.location.pathname}?device=${encodeURIComponent(currentDeviceId)}`;
+      window.history.pushState({ device: currentDeviceId }, '', newUrl);
+      loadSavedDrawing(currentDeviceId);
+      updateUI();
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      loadDevices();
+      setInterval(updateUI, 3000);
+    });
+  </script>
+</body>
+</html>
