@@ -48,6 +48,7 @@ const WhitelistSchema = new mongoose.Schema({
   added_at: { type: Date, default: Date.now }
 });
 
+// ใน DeviceConfigSchema เพิ่ม road_level_cm
 const DeviceConfigSchema = new mongoose.Schema({
   device_id: { type: String, required: true, unique: true, index: true },
   device_name: { type: String, default: '' },
@@ -58,6 +59,7 @@ const DeviceConfigSchema = new mongoose.Schema({
   sensor_offset_cm: { type: Number, default: 0.0 },
   warning_threshold_cm: { type: Number, default: 25.0 },
   critical_threshold_cm: { type: Number, default: 50.0 },
+  road_level_cm: { type: Number, default: null }, // <-- เพิ่มเกณฑ์เสมอผิวถนน
   image_url: { type: String, default: '' }
 }, { timestamps: true });
 
@@ -160,7 +162,8 @@ app.post('/api/config', upload.single('image'), async (req, res) => {
       tank_height_cm,
       sensor_offset_cm,
       warning_threshold_cm,
-      critical_threshold_cm
+      critical_threshold_cm,
+      road_level_cm // <-- รับค่าเข้ามา
     } = req.body;
 
     if (!device_id || !device_id.trim()) {
@@ -184,7 +187,8 @@ app.post('/api/config', upload.single('image'), async (req, res) => {
       tank_height_cm: tank_height_cm !== undefined && tank_height_cm !== '' ? Number(tank_height_cm) : 83.0,
       sensor_offset_cm: sensor_offset_cm !== undefined && sensor_offset_cm !== '' ? Number(sensor_offset_cm) : 0.0,
       warning_threshold_cm: warning_threshold_cm !== undefined && warning_threshold_cm !== '' ? Number(warning_threshold_cm) : 25.0,
-      critical_threshold_cm: critical_threshold_cm !== undefined && critical_threshold_cm !== '' ? Number(critical_threshold_cm) : 50.0
+      critical_threshold_cm: critical_threshold_cm !== undefined && critical_threshold_cm !== '' ? Number(critical_threshold_cm) : 50.0,
+      road_level_cm: (road_level_cm !== undefined && road_level_cm !== '') ? Number(road_level_cm) : null // <-- บันทึกค่า
     };
 
     if (req.file) {
@@ -268,17 +272,17 @@ app.get('/api/config/:deviceId', async (req, res) => {
 // ------------------------------------------
 app.post('/api/telemetry', async (req, res) => {
   try {
-    let { 
-      device_id, 
-      gateway_id, 
-      packet_id, 
-      hops_path, 
-      distance_cm, 
-      battery_voltage, 
-      battery_percent, 
-      status, 
-      rssi, 
-      snr 
+    let {
+      device_id,
+      gateway_id,
+      packet_id,
+      hops_path,
+      distance_cm,
+      battery_voltage,
+      battery_percent,
+      status,
+      rssi,
+      snr
     } = req.body;
 
     if (!device_id) {
@@ -311,10 +315,10 @@ app.post('/api/telemetry', async (req, res) => {
       });
 
       if (duplicate) {
-        return res.status(200).json({ 
-          success: true, 
-          message: 'Duplicate packet ignored', 
-          telemetry_id: duplicate._id 
+        return res.status(200).json({
+          success: true,
+          message: 'Duplicate packet ignored',
+          telemetry_id: duplicate._id
         });
       }
     }

@@ -51,7 +51,7 @@
       </div>
       <div>
         <h1 class="text-base md:text-xl font-bold text-slate-900 tracking-tight leading-tight">ตั้งค่าจุดตรวจวัดระดับน้ำ</h1>
-        <p class="text-xs text-slate-500 font-medium">จัดการข้อมูลอุปกรณ์ พิกัด ระยะติดตั้ง และเกณฑ์การเตือนภัย</p>
+        <p class="text-xs text-slate-500 font-medium">จัดการข้อมูลอุปกรณ์ พิกัด ระยะติดตั้ง เกณฑ์แจ้งเตือน และระดับเสมอผิวถนน</p>
       </div>
     </div>
 
@@ -75,7 +75,7 @@
       <span id="fetchStatus" class="text-xs text-emerald-600"></span>
     </div>
 
-    <!-- ================= ส่วนที่ 1: จัดการ WHITELIST อุปกรณ์ที่อนุญาต ================= -->
+    <!-- ================= ส่วนที่ 1: จัดการ WHITELIST ================= -->
     <div class="bg-white p-5 md:p-6 rounded-3xl border border-slate-200/90 shadow-sm space-y-4">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
         <div class="flex items-center gap-2">
@@ -126,10 +126,10 @@
       </div>
     </div>
 
-    <!-- ================= ส่วนที่ 2: ฟอร์มตั้งค่ารายละเอียดจุดตรวจวัด ================= -->
+    <!-- ================= ส่วนที่ 2: ฟอร์มตั้งค่าจุดตรวจวัด ================= -->
     <form id="configForm" class="bg-white p-5 md:p-8 rounded-3xl border border-slate-200/90 shadow-sm space-y-6">
       
-      <!-- เลือกอุปกรณ์ที่จะแก้ไข หรือสร้างใหม่ -->
+      <!-- เลือกอุปกรณ์ที่จะแก้ไข -->
       <div class="border-b border-slate-100 pb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 class="text-base md:text-lg font-bold text-slate-900">รายละเอียดจุดตรวจวัดและระยะติดตั้ง</h2>
@@ -209,14 +209,15 @@
         </div>
       </div>
 
-      <!-- กำหนดเกณฑ์ระดับน้ำแจ้งเตือน (Threshold) -->
+      <!-- กำหนดเกณฑ์ระดับน้ำแจ้งเตือน (เตือนภัย, วิกฤต และ เสมอผิวถนน) -->
       <div class="space-y-2 pt-2 border-t border-slate-100">
         <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
           <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-500"></i>
-          <span>กำหนดเกณฑ์ระดับน้ำแจ้งเตือน (Threshold)</span>
+          <span>กำหนดเกณฑ์ระดับน้ำแจ้งเตือน (Threshold & Road Level)</span>
         </h3>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <!-- 1. เกณฑ์เตือนภัย -->
           <div class="bg-amber-50/70 border border-amber-200 p-3.5 rounded-2xl">
             <label class="text-xs font-bold text-amber-900 mb-1 block">เกณฑ์เตือนภัย (Warning Level)</label>
             <div class="flex items-center gap-2">
@@ -226,6 +227,7 @@
             <span class="text-[10px] text-amber-700/80 mt-1 block">เมื่อน้ำลึกสูงกว่าหรือเท่ากับค่านี้</span>
           </div>
 
+          <!-- 2. เกณฑ์วิกฤต -->
           <div class="bg-rose-50/70 border border-rose-200 p-3.5 rounded-2xl">
             <label class="text-xs font-bold text-rose-900 mb-1 block">เกณฑ์วิกฤต (Critical Level)</label>
             <div class="flex items-center gap-2">
@@ -233,6 +235,16 @@
               <span class="text-xs font-bold text-rose-800">cm.</span>
             </div>
             <span class="text-[10px] text-rose-700/80 mt-1 block">เมื่อน้ำลึกสูงกว่าหรือเท่ากับค่านี้</span>
+          </div>
+
+          <!-- 3. ระดับเสมอผิวถนน (Road Level) -->
+          <div class="bg-sky-50/70 border border-sky-200 p-3.5 rounded-2xl">
+            <label class="text-xs font-bold text-sky-950 mb-1 block">ระดับเสมอผิวถนน (Road Level)</label>
+            <div class="flex items-center gap-2">
+              <input type="number" step="any" id="roadLevelInput" name="road_level_cm" placeholder="เช่น 70" class="w-full bg-white border border-sky-300 rounded-xl px-3 py-2 text-sm font-mono font-bold text-sky-950 focus:outline-none focus:ring-2 focus:ring-sky-500">
+              <span class="text-xs font-bold text-sky-800">cm.</span>
+            </div>
+            <span class="text-[10px] text-sky-700/90 mt-1 block">ระดับน้ำเมื่อเริ่มล้นเสมอบนผิวถนน</span>
           </div>
         </div>
       </div>
@@ -409,6 +421,7 @@
       document.getElementById('sensorOffsetInput').value = dev.sensor_offset_cm !== undefined ? dev.sensor_offset_cm : 0;
       document.getElementById('warningThresholdInput').value = dev.warning_threshold_cm !== undefined ? dev.warning_threshold_cm : 25;
       document.getElementById('criticalThresholdInput').value = dev.critical_threshold_cm !== undefined ? dev.critical_threshold_cm : 50;
+      document.getElementById('roadLevelInput').value = (dev.road_level_cm !== undefined && dev.road_level_cm !== null) ? dev.road_level_cm : '';
 
       const imgPreview = document.getElementById('imagePreview');
       const noImgText = document.getElementById('noImageText');
@@ -457,7 +470,7 @@
     }
 
     // ----------------------------------------------------
-    // ลบอุปกรณ์ที่เลือก (แก้ปัญหา 404 เรียบร้อย)
+    // ลบอุปกรณ์ที่เลือก
     // ----------------------------------------------------
     async function deleteCurrentDevice() {
       const devId = document.getElementById('deviceIdInput').value.trim().toUpperCase();
@@ -506,6 +519,7 @@
       formData.append('sensor_offset_cm', document.getElementById('sensorOffsetInput').value);
       formData.append('warning_threshold_cm', document.getElementById('warningThresholdInput').value);
       formData.append('critical_threshold_cm', document.getElementById('criticalThresholdInput').value);
+      formData.append('road_level_cm', document.getElementById('roadLevelInput').value.trim()); // ส่งค่าเกณฑ์เสมอผิวถนน
 
       const fileInput = document.getElementById('imageInput');
       if (fileInput.files[0]) {
