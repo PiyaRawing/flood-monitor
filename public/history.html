@@ -342,6 +342,7 @@
     let allDevices = [];
     let currentProcessedLogs = [];
     let latestTelemetryDate = null;
+    let lastLatestLogId = ''; // บันทึก ID แพ็กเก็ตล่าสุดเพื่อเช็คว่ามีข้อมูลใหม่หรือไม่
 
     const urlParams = new URLSearchParams(window.location.search);
     const paramDevice = urlParams.get('device');
@@ -406,7 +407,8 @@
 
         updateBrowserUrl(currentDeviceId);
         updateDeviceInfoUI();
-        loadHistoryData();
+        lastLatestLogId = ''; // รีเซ็ตเมื่อเปลี่ยนอุปกรณ์
+        loadHistoryData(true);
         loadPeriodMaxRecords();
       } catch (err) {
         console.error(err);
@@ -542,12 +544,23 @@
       return aggregated;
     }
 
-    // 3. โหลดข้อมูลประวัติ & กราฟ
-    async function loadHistoryData() {
+    // 3. โหลดข้อมูลประวัติ & กราฟ (พร้อมตรวจจับข้อมูลใหม่)
+    async function loadHistoryData(forceUpdate = false) {
       if (!currentDeviceId) return;
       try {
         const res = await fetch(`/api/telemetry/history/${currentDeviceId}?timeframe=${currentTimeframe}`);
         const rawLogs = await res.json();
+
+        // ตรวจสอบแพ็กเก็ตล่าสุด
+        const latest = rawLogs && rawLogs.length > 0 ? rawLogs[rawLogs.length - 1] : null;
+        const currentLogSignature = latest ? (latest._id || latest.created_at) : '';
+
+        // ถ้าไม่ใช่รอบแรก และไม่มีแพ็กเก็ตใหม่เข้ามา ไม่ต้องทำอะไร
+        if (!forceUpdate && currentLogSignature === lastLatestLogId) {
+          return;
+        }
+
+        lastLatestLogId = currentLogSignature;
 
         updateCurrentMetrics(rawLogs);
         renderHistoryTable(rawLogs);
@@ -673,7 +686,6 @@
       renderLiveTimeCounter();
     }
 
-    // ฟังก์ชันคำนวณและแสดงเวลาอัปเดตแบบ Dynamic Live Counter ขยับเรื่อยๆ
     function renderLiveTimeCounter() {
       if (!latestTelemetryDate) {
         document.getElementById('metricLastUpdated').innerText = 'ยังไม่มีข้อมูล';
@@ -748,10 +760,9 @@
     }
 
     // -------------------------------------------------------------
-    // กราฟที่ 1: กราฟระดับน้ำ (ใช้ฟอนต์ Noto Sans Thai ทั้งหมด)
+    // กราฟที่ 1: กราฟระดับน้ำ (อัปเดตแบบ Soft Update ไม่กระพริบ)
     // -------------------------------------------------------------
     function renderWaterChart(logs) {
-      const ctx = document.getElementById('waterChart').getContext('2d');
       const dev = allDevices.find(d => d.device_id === currentDeviceId);
       
       const labels = logs.map(l => {
@@ -821,16 +832,22 @@
         });
       }
 
+      // ถ้ามีกราฟอยู่แล้ว ให้อัปเดตข้อมูลโดยตรง ไม่ destroy()
       if (waterChart) {
-        waterChart.destroy();
+        waterChart.data.labels = labels;
+        waterChart.data.datasets = datasets;
+        waterChart.update('none'); // อัปเดตเงียบๆ ไม่เล่น animation ซ้ำ
+        return;
       }
 
+      const ctx = document.getElementById('waterChart').getContext('2d');
       waterChart = new Chart(ctx, {
         type: 'line',
         data: { labels, datasets },
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          animation: false, // ปิดแอนิเมชันเริ่มแรกเพื่อไม่ให้ดีเลย์
           interaction: { mode: 'index', intersect: false },
           plugins: {
             legend: {
@@ -867,10 +884,10 @@
       });
     }
 
-    // กราฟที่ 2: กราฟแบตเตอรี่ (ใช้ฟอนต์ Noto Sans Thai ทั้งหมด)
+    // -------------------------------------------------------------
+    // กราฟที่ 2: กราฟแบตเตอรี่ (อัปเดตแบบ Soft Update ไม่กระพริบ)
+    // -------------------------------------------------------------
     function renderBatteryChart(logs) {
-      const ctx = document.getElementById('batteryChart').getContext('2d');
-      
       const labels = logs.map(l => {
         const d = new Date(l.created_at);
         if (currentTimeframe === '7d' || currentTimeframe === '30d') {
@@ -881,29 +898,33 @@
 
       const batteryData = logs.map(l => (l.battery_percent !== null && l.battery_percent !== undefined) ? l.battery_percent : 100);
 
+      const datasets = [{
+        label: 'ระดับแบตเตอรี่ (%)',
+        data: batteryData,
+        borderColor: '#10b981',
+        backgroundColor: 'rgba(16, 185, 129, 0.08)',
+        borderWidth: 2,
+        fill: true,
+        tension: 0.2,
+        pointRadius: logs.length > 80 ? 0 : 2,
+        pointHoverRadius: 5
+      }];
+
       if (batteryChart) {
-        batteryChart.destroy();
+        batteryChart.data.labels = labels;
+        batteryChart.data.datasets = datasets;
+        batteryChart.update('none');
+        return;
       }
 
+      const ctx = document.getElementById('batteryChart').getContext('2d');
       batteryChart = new Chart(ctx, {
         type: 'line',
-        data: {
-          labels,
-          datasets: [{
-            label: 'ระดับแบตเตอรี่ (%)',
-            data: batteryData,
-            borderColor: '#10b981',
-            backgroundColor: 'rgba(16, 185, 129, 0.08)',
-            borderWidth: 2,
-            fill: true,
-            tension: 0.2,
-            pointRadius: logs.length > 80 ? 0 : 2,
-            pointHoverRadius: 5
-          }]
-        },
+        data: { labels, datasets },
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          animation: false,
           interaction: { mode: 'index', intersect: false },
           plugins: {
             legend: { display: false },
@@ -941,14 +962,16 @@
         }
       });
       updateDeviceInfoUI();
-      loadHistoryData();
+      lastLatestLogId = ''; // บังคับโหลดใหม่เมื่อกดเปลี่ยนช่วงเวลา
+      loadHistoryData(true);
     }
 
     document.getElementById('deviceSelect').addEventListener('change', (e) => {
       currentDeviceId = e.target.value;
       updateBrowserUrl(currentDeviceId);
       updateDeviceInfoUI();
-      loadHistoryData();
+      lastLatestLogId = '';
+      loadHistoryData(true);
       loadPeriodMaxRecords();
     });
 
@@ -956,11 +979,12 @@
       lucide.createIcons();
       loadDevices();
 
+      // ตัวนับวินาทีจะขยับทุก 1 วิ อย่างอิสระ ไม่เกี่ยวกับตัวกราฟ
       setInterval(renderLiveTimeCounter, 1000);
 
+      // โพลลิ่งตรวจสอบข้อมูลใหม่ทุก 5 วิ (ถ้าข้อมูลเดิมจะไม่ re-render กราฟ)
       setInterval(() => {
-        loadHistoryData();
-        loadPeriodMaxRecords();
+        loadHistoryData(false);
       }, 5000);
     });
   </script>
