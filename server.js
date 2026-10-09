@@ -48,7 +48,6 @@ const WhitelistSchema = new mongoose.Schema({
   added_at: { type: Date, default: Date.now }
 });
 
-// ใน DeviceConfigSchema เพิ่ม road_level_cm
 const DeviceConfigSchema = new mongoose.Schema({
   device_id: { type: String, required: true, unique: true, index: true },
   device_name: { type: String, default: '' },
@@ -59,7 +58,7 @@ const DeviceConfigSchema = new mongoose.Schema({
   sensor_offset_cm: { type: Number, default: 0.0 },
   warning_threshold_cm: { type: Number, default: 25.0 },
   critical_threshold_cm: { type: Number, default: 50.0 },
-  road_level_cm: { type: Number, default: null }, // <-- เพิ่มเกณฑ์เสมอผิวถนน
+  road_level_cm: { type: Number, default: null },
   image_url: { type: String, default: '' }
 }, { timestamps: true });
 
@@ -107,14 +106,12 @@ app.post('/api/whitelist', async (req, res) => {
     }
     device_id = device_id.trim().toUpperCase();
 
-    // บันทึกลง Whitelist
     const item = await Whitelist.findOneAndUpdate(
       { device_id },
       { $set: { description: description || `โหนด ${device_id}`, added_at: new Date() } },
       { upsert: true, new: true }
     );
 
-    // สร้าง DeviceConfig ตั้งต้นควบคู่กันไว้
     await DeviceConfig.findOneAndUpdate(
       { device_id },
       {
@@ -163,7 +160,7 @@ app.post('/api/config', upload.single('image'), async (req, res) => {
       sensor_offset_cm,
       warning_threshold_cm,
       critical_threshold_cm,
-      road_level_cm // <-- รับค่าเข้ามา
+      road_level_cm
     } = req.body;
 
     if (!device_id || !device_id.trim()) {
@@ -172,7 +169,6 @@ app.post('/api/config', upload.single('image'), async (req, res) => {
 
     const cleanDeviceId = device_id.trim().toUpperCase();
 
-    // เพิ่มเข้า Whitelist อัตโนมัติเมื่อมีการบันทึกจากหน้า Admin
     await Whitelist.findOneAndUpdate(
       { device_id: cleanDeviceId },
       { $setOnInsert: { description: device_name || cleanDeviceId } },
@@ -188,7 +184,7 @@ app.post('/api/config', upload.single('image'), async (req, res) => {
       sensor_offset_cm: sensor_offset_cm !== undefined && sensor_offset_cm !== '' ? Number(sensor_offset_cm) : 0.0,
       warning_threshold_cm: warning_threshold_cm !== undefined && warning_threshold_cm !== '' ? Number(warning_threshold_cm) : 25.0,
       critical_threshold_cm: critical_threshold_cm !== undefined && critical_threshold_cm !== '' ? Number(critical_threshold_cm) : 50.0,
-      road_level_cm: (road_level_cm !== undefined && road_level_cm !== '') ? Number(road_level_cm) : null // <-- บันทึกค่า
+      road_level_cm: (road_level_cm !== undefined && road_level_cm !== '') ? Number(road_level_cm) : null
     };
 
     if (req.file) {
@@ -223,7 +219,6 @@ const deleteDeviceHandler = async (req, res) => {
   }
 };
 
-// รองรับทั้ง /api/devices/:deviceId และ /api/config/:deviceId ป้องกัน 404
 app.delete('/api/devices/:deviceId', deleteDeviceHandler);
 app.delete('/api/config/:deviceId', deleteDeviceHandler);
 
@@ -268,21 +263,21 @@ app.get('/api/config/:deviceId', async (req, res) => {
 });
 
 // ------------------------------------------
-// 5. API Telemetry (ระบบตรวจ Whitelist เข้มงวด)
+// 5. API Telemetry (ตัด Duplicate Check ออกแล้ว)
 // ------------------------------------------
 app.post('/api/telemetry', async (req, res) => {
   try {
-    let {
-      device_id,
-      gateway_id,
-      packet_id,
-      hops_path,
-      distance_cm,
-      battery_voltage,
-      battery_percent,
-      status,
-      rssi,
-      snr
+    let { 
+      device_id, 
+      gateway_id, 
+      packet_id, 
+      hops_path, 
+      distance_cm, 
+      battery_voltage, 
+      battery_percent, 
+      status, 
+      rssi, 
+      snr 
     } = req.body;
 
     if (!device_id) {
@@ -291,7 +286,7 @@ app.post('/api/telemetry', async (req, res) => {
 
     const cleanDeviceId = device_id.trim().toUpperCase();
 
-    // 1. ตรวจสอบ Whitelist: หากไม่อยู่ในรายการ ให้ทิ้งทันที
+    // ตรวจสอบ Whitelist: หากไม่อยู่ในรายการให้ปฏิเสธทันที
     const isAllowed = await Whitelist.exists({ device_id: cleanDeviceId });
     if (!isAllowed) {
       console.warn(`[BLOCKED] Device "${cleanDeviceId}" is NOT in Whitelist. Packet dropped.`);
@@ -305,25 +300,7 @@ app.post('/api/telemetry', async (req, res) => {
       return res.status(400).json({ error: 'Valid distance_cm is required' });
     }
 
-    // 2. กรองข้อมูลซ้ำใน 60 วินาที
-    if (packet_id !== undefined && packet_id !== null) {
-      const oneMinuteAgo = new Date(Date.now() - 60000);
-      const duplicate = await Telemetry.findOne({
-        device_id: cleanDeviceId,
-        packet_id: Number(packet_id),
-        created_at: { $gte: oneMinuteAgo }
-      });
-
-      if (duplicate) {
-        return res.status(200).json({
-          success: true,
-          message: 'Duplicate packet ignored',
-          telemetry_id: duplicate._id
-        });
-      }
-    }
-
-    // 3. ดึง Config
+    // ดึง Config อุปกรณ์เพื่อคำนวณระดับน้ำ
     let config = await DeviceConfig.findOne({ device_id: cleanDeviceId });
     if (!config) {
       config = await DeviceConfig.create({
@@ -335,7 +312,7 @@ app.post('/api/telemetry', async (req, res) => {
       });
     }
 
-    // 4. คำนวณความสูงน้ำ
+    // คำนวณความสูงน้ำจริง
     let calculatedDepth = 0;
     const rawDist = Number(distance_cm);
     if (rawDist > 0) {
@@ -344,6 +321,7 @@ app.post('/api/telemetry', async (req, res) => {
       calculatedDepth = Math.max(0, Math.round(((baseHeight + offset) - rawDist) * 10) / 10);
     }
 
+    // บันทึกลง Telemetry ทันที ไม่ดัก Packet ซ้ำ
     const telemetry = new Telemetry({
       device_id: cleanDeviceId,
       gateway_id: gateway_id || 'GW-001',
