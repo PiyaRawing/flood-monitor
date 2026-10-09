@@ -104,10 +104,10 @@
       </div>
     </div>
 
-    <!-- ================= METRICS SECTION ================= -->
+    <!-- ================= METRICS SECTION ด้านบน ================= -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
       
-      <!-- กล่องซ้าย: ระดับน้ำปัจจุบัน (ขนาดใหญ่สุด) -->
+      <!-- กล่องซ้าย: ระดับน้ำปัจจุบัน + ระยะถึงระดับพื้น -->
       <div class="lg:col-span-6 bg-gradient-to-br from-white to-orange-50/40 p-6 md:p-8 rounded-3xl border border-orange-200/80 shadow-sm flex flex-col justify-between relative overflow-hidden">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2 text-brand-600 font-bold text-sm md:text-base">
@@ -121,9 +121,27 @@
           </span>
         </div>
 
-        <div class="my-6 flex items-baseline gap-3">
-          <span id="metricWaterDepth" class="text-6xl md:text-7xl font-black text-slate-900 tracking-tight leading-none">-</span>
-          <span class="text-xl md:text-2xl font-bold text-slate-400">cm</span>
+        <div class="my-5 flex flex-wrap items-end justify-between gap-4">
+          <!-- ระดับน้ำปัจจุบัน -->
+          <div>
+            <span class="text-xs font-bold text-slate-400 block mb-1">ความสูงระดับน้ำ</span>
+            <div class="flex items-baseline gap-2">
+              <span id="metricWaterDepth" class="text-6xl md:text-7xl font-black text-slate-900 tracking-tight leading-none">-</span>
+              <span class="text-xl md:text-2xl font-bold text-slate-400">cm</span>
+            </div>
+          </div>
+
+          <!-- ระยะห่างถึงระดับพื้น (Remaining to Ground) -->
+          <div id="groundDistanceBox" class="bg-white/90 border border-sky-200 px-4 py-3 rounded-2xl shadow-xs">
+            <span id="txtGroundLabel" class="text-xs font-bold text-sky-800 flex items-center gap-1 block">
+              <i data-lucide="arrow-up-to-line" class="w-3.5 h-3.5 text-sky-600"></i> ระยะถึงระดับพื้น
+            </span>
+            <div class="flex items-baseline gap-1.5 mt-0.5">
+              <span id="metricDistanceToGround" class="text-3xl font-black text-sky-700">-</span>
+              <span class="text-xs font-bold text-sky-500">cm</span>
+            </div>
+            <span id="txtGroundTarget" class="text-[10px] text-slate-400 block mt-0.5">ระดับพื้น: - cm</span>
+          </div>
         </div>
 
         <div class="pt-4 border-t border-orange-100 flex flex-wrap items-center justify-between gap-2 text-xs md:text-sm text-slate-500">
@@ -139,57 +157,43 @@
               วิกฤต: <b id="valCritThresh">0</b> cm
             </span>
             <span id="badgeRoadThresh" class="hidden text-sky-800 bg-sky-50 px-2 py-0.5 rounded-lg border border-sky-200 text-xs font-bold">
-              เสมอผิวถนน: <b id="valRoadThresh">0</b> cm
+              ระดับพื้น: <b id="valRoadThresh">0</b> cm
             </span>
           </div>
         </div>
       </div>
 
-      <!-- กล่องขวา: เรียง 3 กล่องย่อย (สูงสุดรอบ 1 วัน, สูงสุดรอบ 7 วัน, แบตเตอรี่) -->
-      <div class="lg:col-span-6 grid grid-cols-1 sm:grid-cols-3 gap-3.5 md:gap-4">
+      
+      <!-- กล่องขวา: 2 กล่องสถิติ (สูงสุดรอบ 1 วัน และ สูงสุดรอบ 7 วัน) -->
+      <div class="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
         
         <!-- 1. สูงสุดรอบ 1 วัน -->
-        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
+        <div class="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
           <div class="flex items-center justify-between text-slate-500">
-            <span class="text-xs font-bold">สูงสุดรอบ 1 วัน</span>
-            <i data-lucide="trending-up" class="w-4 h-4 text-amber-500"></i>
+            <span class="text-sm font-bold">ระดับน้ำสูงสุดรอบ 1 วัน</span>
+            <span class="p-2 bg-amber-50 rounded-xl text-amber-500"><i data-lucide="trending-up" class="w-5 h-5"></i></span>
           </div>
-          <div class="mt-2 flex items-baseline gap-1.5">
-            <span id="metricMax1Day" class="text-2xl md:text-3xl font-black text-amber-600">-</span>
-            <span class="text-xs font-bold text-slate-400">cm</span>
+          <div class="my-4 flex items-baseline gap-2">
+            <span id="metricMax1Day" class="text-4xl md:text-5xl font-black text-amber-600">-</span>
+            <span class="text-sm font-bold text-slate-400">cm</span>
           </div>
-          <div id="metricMax1DayTime" class="mt-2 text-[10px] text-slate-400 truncate font-medium">
+          <div id="metricMax1DayTime" class="text-xs text-slate-400 font-medium">
             เวลา: -
           </div>
         </div>
 
         <!-- 2. สูงสุดรอบ 7 วัน -->
-        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
+        <div class="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
           <div class="flex items-center justify-between text-slate-500">
-            <span class="text-xs font-bold">สูงสุดรอบ 7 วัน</span>
-            <i data-lucide="bar-chart-2" class="w-4 h-4 text-rose-500"></i>
+            <span class="text-sm font-bold">ระดับน้ำสูงสุดรอบ 7 วัน</span>
+            <span class="p-2 bg-rose-50 rounded-xl text-rose-500"><i data-lucide="bar-chart-2" class="w-5 h-5"></i></span>
           </div>
-          <div class="mt-2 flex items-baseline gap-1.5">
-            <span id="metricMax7Days" class="text-2xl md:text-3xl font-black text-rose-600">-</span>
-            <span class="text-xs font-bold text-slate-400">cm</span>
+          <div class="my-4 flex items-baseline gap-2">
+            <span id="metricMax7Days" class="text-4xl md:text-5xl font-black text-rose-600">-</span>
+            <span class="text-sm font-bold text-slate-400">cm</span>
           </div>
-          <div id="metricMax7DaysTime" class="mt-2 text-[10px] text-slate-400 truncate font-medium">
+          <div id="metricMax7DaysTime" class="text-xs text-slate-400 font-medium">
             เวลา: -
-          </div>
-        </div>
-
-        <!-- 3. ระดับแบตเตอรี่ -->
-        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
-          <div class="flex items-center justify-between text-slate-500">
-            <span class="text-xs font-bold">ระดับแบตเตอรี่</span>
-            <i data-lucide="battery-charging" class="w-4 h-4 text-emerald-500"></i>
-          </div>
-          <div class="mt-2 flex items-baseline gap-1.5">
-            <span id="metricBattery" class="text-2xl md:text-3xl font-black text-slate-900">-</span>
-            <span class="text-xs font-bold text-slate-400">%</span>
-          </div>
-          <div id="metricBatteryVolt" class="mt-2 text-[11px] text-slate-400 truncate font-semibold">
-            แรงดัน: - V
           </div>
         </div>
 
@@ -197,7 +201,7 @@
     </div>
 
     <!-- ================= GRAPH SECTIONS ================= -->
-    <!-- กราฟที่ 1: กราฟระดับน้ำ (พร้อมเส้นเกณฑ์เสมอผิวถนน) -->
+    <!-- กราฟที่ 1: กราฟระดับน้ำ (ค่าเริ่มต้นแสดงเฉพาะเส้นระดับพื้น) -->
     <div class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-slate-200/80 space-y-4">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
         <div>
@@ -239,16 +243,35 @@
     <!-- ================= TABLE & LOWER METRICS ================= -->
     <div class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-slate-200/80 space-y-5">
       
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pb-2 border-b border-slate-100">
-        <!-- เซนเซอร์ถึงผิวน้ำ -->
+      <!-- แถวการ์ดสถานะ: ระดับแบตเตอรี่, ระยะเซนเซอร์ถึงผิวน้ำ, คุณภาพสัญญาณ & Mesh Path -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pb-2 border-b border-slate-100">
+        
+        <!-- 1. ระดับแบตเตอรี่ (ย้ายลงมาไว้ที่นี่) -->
+        <div class="bg-slate-50/80 p-4 rounded-xl border border-slate-200/70 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <span class="p-2.5 rounded-xl bg-emerald-100 text-emerald-600">
+              <i data-lucide="battery-charging" class="w-5 h-5"></i>
+            </span>
+            <div>
+              <span class="text-xs text-slate-500 font-bold block">ระดับแบตเตอรี่</span>
+              <span id="metricBatteryVolt" class="text-[11px] text-slate-400 font-semibold block">แรงดัน: - V</span>
+            </div>
+          </div>
+          <div class="text-right">
+            <span id="metricBattery" class="text-2xl font-black text-slate-900">-</span>
+            <span class="text-xs font-bold text-slate-400 ml-1">%</span>
+          </div>
+        </div>
+
+        <!-- 2. ระยะเซนเซอร์ถึงผิวน้ำ (Raw Distance) -->
         <div class="bg-slate-50/80 p-4 rounded-xl border border-slate-200/70 flex items-center justify-between">
           <div class="flex items-center gap-3">
             <span class="p-2.5 rounded-xl bg-sky-100 text-sky-600">
               <i data-lucide="arrow-down-up" class="w-5 h-5"></i>
             </span>
             <div>
-              <span class="text-xs text-slate-500 font-bold block">ระยะเซนเซอร์ถึงผิวน้ำ (Raw Distance)</span>
-              <span class="text-[11px] text-slate-400 font-medium">ระยะที่เซนเซอร์ตรวจวัดจริง</span>
+              <span class="text-xs text-slate-500 font-bold block">ระยะเซนเซอร์ถึงผิวน้ำ</span>
+              <span class="text-[11px] text-slate-400 font-medium">ระยะที่อ่านได้จริง</span>
             </div>
           </div>
           <div class="text-right">
@@ -257,16 +280,16 @@
           </div>
         </div>
 
-        <!-- สัญญาณ & เส้นทาง Mesh -->
+        <!-- 3. คุณภาพสัญญาณ & เส้นทาง Mesh -->
         <div class="bg-slate-50/80 p-4 rounded-xl border border-slate-200/70 flex items-center justify-between">
           <div class="flex items-center gap-3">
             <span class="p-2.5 rounded-xl bg-indigo-100 text-indigo-600">
               <i data-lucide="git-branch" class="w-5 h-5"></i>
             </span>
             <div>
-              <span class="text-xs text-slate-500 font-bold block">คุณภาพสัญญาณ & เส้นทางส่งข้อมูลล่าสุด</span>
+              <span class="text-xs text-slate-500 font-bold block">คุณภาพสัญญาณ & เส้นทาง</span>
               <div class="flex items-center gap-2 mt-0.5">
-                <span id="metricRssi" class="text-sm font-bold text-indigo-600">- dBm</span>
+                <span id="metricRssi" class="text-xs font-bold text-indigo-600">- dBm</span>
                 <span id="metricSnr" class="text-[11px] text-slate-400 font-medium">SNR: - dB</span>
               </div>
             </div>
@@ -342,7 +365,7 @@
     let allDevices = [];
     let currentProcessedLogs = [];
     let latestTelemetryDate = null;
-    let lastLatestLogId = ''; // บันทึก ID แพ็กเก็ตล่าสุดเพื่อเช็คว่ามีข้อมูลใหม่หรือไม่
+    let lastLatestLogId = '';
 
     const urlParams = new URLSearchParams(window.location.search);
     const paramDevice = urlParams.get('device');
@@ -407,7 +430,7 @@
 
         updateBrowserUrl(currentDeviceId);
         updateDeviceInfoUI();
-        lastLatestLogId = ''; // รีเซ็ตเมื่อเปลี่ยนอุปกรณ์
+        lastLatestLogId = '';
         loadHistoryData(true);
         loadPeriodMaxRecords();
       } catch (err) {
@@ -463,6 +486,7 @@
         badgeCrit.classList.add('hidden');
       }
 
+      // เปลี่ยนข้อความเป็น "ระดับพื้น"
       if (dev && dev.road_level_cm !== undefined && dev.road_level_cm !== null && dev.road_level_cm !== '') {
         document.getElementById('valRoadThresh').innerText = dev.road_level_cm;
         badgeRoad.classList.remove('hidden');
@@ -544,18 +568,16 @@
       return aggregated;
     }
 
-    // 3. โหลดข้อมูลประวัติ & กราฟ (พร้อมตรวจจับข้อมูลใหม่)
+    // 3. โหลดข้อมูลประวัติ & กราฟ
     async function loadHistoryData(forceUpdate = false) {
       if (!currentDeviceId) return;
       try {
         const res = await fetch(`/api/telemetry/history/${currentDeviceId}?timeframe=${currentTimeframe}`);
         const rawLogs = await res.json();
 
-        // ตรวจสอบแพ็กเก็ตล่าสุด
         const latest = rawLogs && rawLogs.length > 0 ? rawLogs[rawLogs.length - 1] : null;
         const currentLogSignature = latest ? (latest._id || latest.created_at) : '';
 
-        // ถ้าไม่ใช่รอบแรก และไม่มีแพ็กเก็ตใหม่เข้ามา ไม่ต้องทำอะไร
         if (!forceUpdate && currentLogSignature === lastLatestLogId) {
           return;
         }
@@ -644,6 +666,7 @@
     function updateCurrentMetrics(logs) {
       if (!logs || logs.length === 0) {
         document.getElementById('metricWaterDepth').innerText = '-';
+        document.getElementById('metricDistanceToGround').innerText = '-';
         document.getElementById('metricDistance').innerText = '-';
         document.getElementById('metricBattery').innerText = '-';
         document.getElementById('metricBatteryVolt').innerText = 'แรงดัน: - V';
@@ -658,7 +681,44 @@
       const latest = logs[logs.length - 1];
       latestTelemetryDate = new Date(latest.created_at);
 
+      const waterDepth = (latest.water_depth_cm !== null && latest.water_depth_cm !== undefined) ? Number(latest.water_depth_cm) : 0;
       document.getElementById('metricWaterDepth').innerText = latest.water_depth_cm !== null ? latest.water_depth_cm : '-';
+
+      // คำนวณระยะห่างถึงระดับพื้น (Distance to Ground Level)
+      const dev = allDevices.find(d => d.device_id === currentDeviceId);
+      const groundBox = document.getElementById('groundDistanceBox');
+      const groundValEl = document.getElementById('metricDistanceToGround');
+      const groundLabelEl = document.getElementById('txtGroundLabel');
+      const groundTargetEl = document.getElementById('txtGroundTarget');
+
+      if (dev && dev.road_level_cm !== undefined && dev.road_level_cm !== null && dev.road_level_cm !== '') {
+        groundBox.classList.remove('hidden');
+        const groundCm = Number(dev.road_level_cm);
+        groundTargetEl.innerText = `ระดับพื้น: ${groundCm} cm`;
+
+        const diffToGround = Math.round((groundCm - waterDepth) * 10) / 10;
+
+        if (diffToGround > 0) {
+          // น้ำยังไม่ถึงระดับพื้น (แสดงระยะที่เหลือ)
+          groundValEl.innerText = diffToGround.toFixed(1);
+          groundValEl.className = 'text-3xl font-black text-sky-700';
+          groundLabelEl.innerHTML = '<i data-lucide="arrow-up-to-line" class="w-3.5 h-3.5 text-sky-600"></i> อีกเท่าไหร่ถึงพื้น';
+          groundBox.className = 'bg-white/90 border border-sky-200 px-4 py-3 rounded-2xl shadow-xs';
+        } else {
+          // น้ำสูงเสมอดินหรือล้นท่วมพื้นแล้ว
+          const overflowCm = Math.abs(diffToGround).toFixed(1);
+          groundValEl.innerText = `+${overflowCm}`;
+          groundValEl.className = 'text-3xl font-black text-rose-600';
+          groundLabelEl.innerHTML = '<i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-rose-600"></i> ท่วมพ้นระดับพื้น';
+          groundBox.className = 'bg-rose-50/90 border border-rose-300 px-4 py-3 rounded-2xl shadow-xs';
+        }
+      } else {
+        // หากจุดวัดยังไม่ได้ตั้งค่าระดับพื้น
+        groundValEl.innerText = '-';
+        groundTargetEl.innerText = 'ยังไม่ได้ตั้งค่าระดับพื้น';
+        groundBox.className = 'bg-slate-50 border border-slate-200 px-4 py-3 rounded-2xl shadow-xs';
+      }
+
       document.getElementById('metricDistance').innerText = latest.distance_cm !== undefined ? latest.distance_cm : '-';
       document.getElementById('metricBattery').innerText = (latest.battery_percent !== undefined && latest.battery_percent !== null) ? latest.battery_percent : '100';
       
@@ -684,6 +744,7 @@
       }
 
       renderLiveTimeCounter();
+      lucide.createIcons();
     }
 
     function renderLiveTimeCounter() {
@@ -760,7 +821,7 @@
     }
 
     // -------------------------------------------------------------
-    // กราฟที่ 1: กราฟระดับน้ำ (อัปเดตแบบ Soft Update ไม่กระพริบ)
+    // กราฟที่ 1: กราฟระดับน้ำ (ค่าเริ่มต้นแสดงเฉพาะเส้นระดับพื้น)
     // -------------------------------------------------------------
     function renderWaterChart(logs) {
       const dev = allDevices.find(d => d.device_id === currentDeviceId);
@@ -790,6 +851,23 @@
         }
       ];
 
+      // 1. เส้นระดับพื้น (แสดงเป็นค่าเริ่มต้น)
+      if (dev && dev.road_level_cm !== undefined && dev.road_level_cm !== null && dev.road_level_cm !== '' && logs.length > 0) {
+        datasets.push({
+          label: `ระดับพื้น (${dev.road_level_cm} cm)`,
+          data: new Array(logs.length).fill(dev.road_level_cm),
+          borderColor: '#0284c7',
+          borderWidth: 2,
+          borderDash: [4, 4],
+          fill: false,
+          pointRadius: 0,
+          pointHoverRadius: 0,
+          hidden: false, // แสดงเริ่มต้น
+          order: 0
+        });
+      }
+
+      // 2. เส้นเกณฑ์เตือนภัย (ซ่อนไว้เป็นค่าเริ่มต้น สามารถกดเปิดดูที่ Legend ได้)
       if (dev && dev.warning_threshold_cm !== undefined && dev.warning_threshold_cm !== null && logs.length > 0) {
         datasets.push({
           label: `เกณฑ์เตือนภัย (${dev.warning_threshold_cm} cm)`,
@@ -800,10 +878,12 @@
           fill: false,
           pointRadius: 0,
           pointHoverRadius: 0,
+          hidden: true, // ซ่อนเริ่มต้น
           order: 0
         });
       }
 
+      // 3. เส้นเกณฑ์วิกฤต (ซ่อนไว้เป็นค่าเริ่มต้น สามารถกดเปิดดูที่ Legend ได้)
       if (dev && dev.critical_threshold_cm !== undefined && dev.critical_threshold_cm !== null && logs.length > 0) {
         datasets.push({
           label: `เกณฑ์วิกฤต (${dev.critical_threshold_cm} cm)`,
@@ -814,29 +894,15 @@
           fill: false,
           pointRadius: 0,
           pointHoverRadius: 0,
+          hidden: true, // ซ่อนเริ่มต้น
           order: 0
         });
       }
 
-      if (dev && dev.road_level_cm !== undefined && dev.road_level_cm !== null && dev.road_level_cm !== '' && logs.length > 0) {
-        datasets.push({
-          label: `ระดับเสมอผิวถนน (${dev.road_level_cm} cm)`,
-          data: new Array(logs.length).fill(dev.road_level_cm),
-          borderColor: '#0284c7',
-          borderWidth: 2,
-          borderDash: [4, 4],
-          fill: false,
-          pointRadius: 0,
-          pointHoverRadius: 0,
-          order: 0
-        });
-      }
-
-      // ถ้ามีกราฟอยู่แล้ว ให้อัปเดตข้อมูลโดยตรง ไม่ destroy()
       if (waterChart) {
         waterChart.data.labels = labels;
         waterChart.data.datasets = datasets;
-        waterChart.update('none'); // อัปเดตเงียบๆ ไม่เล่น animation ซ้ำ
+        waterChart.update('none');
         return;
       }
 
@@ -847,7 +913,7 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          animation: false, // ปิดแอนิเมชันเริ่มแรกเพื่อไม่ให้ดีเลย์
+          animation: false,
           interaction: { mode: 'index', intersect: false },
           plugins: {
             legend: {
@@ -885,7 +951,7 @@
     }
 
     // -------------------------------------------------------------
-    // กราฟที่ 2: กราฟแบตเตอรี่ (อัปเดตแบบ Soft Update ไม่กระพริบ)
+    // กราฟที่ 2: กราฟแบตเตอรี่
     // -------------------------------------------------------------
     function renderBatteryChart(logs) {
       const labels = logs.map(l => {
@@ -962,7 +1028,7 @@
         }
       });
       updateDeviceInfoUI();
-      lastLatestLogId = ''; // บังคับโหลดใหม่เมื่อกดเปลี่ยนช่วงเวลา
+      lastLatestLogId = '';
       loadHistoryData(true);
     }
 
@@ -979,10 +1045,8 @@
       lucide.createIcons();
       loadDevices();
 
-      // ตัวนับวินาทีจะขยับทุก 1 วิ อย่างอิสระ ไม่เกี่ยวกับตัวกราฟ
       setInterval(renderLiveTimeCounter, 1000);
 
-      // โพลลิ่งตรวจสอบข้อมูลใหม่ทุก 5 วิ (ถ้าข้อมูลเดิมจะไม่ re-render กราฟ)
       setInterval(() => {
         loadHistoryData(false);
       }, 5000);
