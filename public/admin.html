@@ -8,7 +8,7 @@
   <!-- Google Fonts: Noto Sans Thai -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com">
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -21,7 +21,7 @@
         extend: {
           fontFamily: { 
             sans: ['"Noto Sans Thai"', 'sans-serif'],
-            mono: ['"JetBrains Mono"', 'monospace']
+            mono: ['"Noto Sans Thai"', 'sans-serif']
           },
           colors: { 
             brand: { 
@@ -38,10 +38,48 @@
   </script>
 
   <style>
+    * { font-family: 'Noto Sans Thai', sans-serif !important; }
     body { font-family: 'Noto Sans Thai', sans-serif; }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800 antialiased flex flex-col min-h-screen pb-24 font-sans">
+
+  <!-- ================= 0. MODAL เข้าสู่ระบบ (LOGIN MODAL) ================= -->
+  <div id="loginModal" class="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md rounded-3xl p-6 md:p-8 shadow-2xl border border-slate-100 text-center space-y-5">
+      <div class="w-14 h-14 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center mx-auto shadow-inner">
+        <i data-lucide="lock" class="w-7 h-7"></i>
+      </div>
+      <div>
+        <h2 class="text-xl font-black text-slate-900">เข้าสู่ระบบผู้ดูแล</h2>
+        <p class="text-xs text-slate-500 mt-1">กรุณากรอกรหัสผ่านเพื่อเข้าใช้งานส่วนตั้งค่าระบบ</p>
+      </div>
+
+      <form id="loginForm" class="space-y-4 text-left">
+        <div>
+          <label class="text-xs font-bold text-slate-700 block mb-1">รหัสผ่านผู้ดูแลระบบ (Admin Password)</label>
+          <div class="relative">
+            <input type="password" id="adminPasswordInput" required placeholder="กรอกรหัสผ่าน" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <button type="button" onclick="togglePasswordVisibility()" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600">
+              <i data-lucide="eye" id="eyeIcon" class="w-4 h-4"></i>
+            </button>
+          </div>
+          <p id="loginErrorMsg" class="hidden text-rose-500 text-[11px] font-bold mt-1.5 flex items-center gap-1">
+            <i data-lucide="alert-circle" class="w-3.5 h-3.5"></i> รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง
+          </p>
+        </div>
+
+        <button type="submit" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 shadow-md shadow-brand-500/20">
+          <i data-lucide="log-in" class="w-4 h-4"></i>
+          <span>ยืนยันเข้าสู่ระบบ</span>
+        </button>
+
+        <a href="/index.html" class="block text-center text-xs text-slate-400 hover:text-slate-600 font-medium pt-2">
+          ← ยกเลิกและกลับหน้าภาพรวม
+        </a>
+      </form>
+    </div>
+  </div>
 
   <!-- ================= 1. HEADER ================= -->
   <header class="bg-white border-b border-slate-200/80 px-4 md:px-8 py-3.5 flex items-center justify-between shadow-xs sticky top-0 z-30">
@@ -51,11 +89,15 @@
       </div>
       <div>
         <h1 class="text-base md:text-xl font-bold text-slate-900 tracking-tight leading-tight">ตั้งค่าจุดตรวจวัดระดับน้ำ</h1>
-        <p class="text-xs text-slate-500 font-medium">จัดการข้อมูลอุปกรณ์ พิกัด ระยะติดตั้ง เกณฑ์แจ้งเตือน และระดับเสมอผิวถนน</p>
+        <p class="text-xs text-slate-500 font-medium">จัดการ Whitelist, ระยะติดตั้ง และระดับพื้น</p>
       </div>
     </div>
 
     <div class="flex items-center gap-2.5">
+      <button onclick="logoutAdmin()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 text-xs md:text-sm font-bold transition">
+        <i data-lucide="log-out" class="w-4 h-4"></i>
+        <span>ออกจากระบบ</span>
+      </button>
       <a href="/index.html" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs md:text-sm font-bold transition">
         <i data-lucide="arrow-left" class="w-4 h-4"></i>
         <span>กลับหน้าภาพรวม</span>
@@ -75,7 +117,7 @@
       <span id="fetchStatus" class="text-xs text-emerald-600"></span>
     </div>
 
-    <!-- ================= ส่วนที่ 1: จัดการ WHITELIST ================= -->
+    <!-- ================= ส่วนที่ 1: จัดการ WHITELIST อุปกรณ์ที่อนุญาต ================= -->
     <div class="bg-white p-5 md:p-6 rounded-3xl border border-slate-200/90 shadow-sm space-y-4">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
         <div class="flex items-center gap-2">
@@ -96,7 +138,7 @@
       <form id="whitelistForm" class="flex flex-col sm:flex-row items-center gap-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
         <div class="flex-1 w-full">
           <label class="text-[11px] font-bold text-slate-600 mb-1 block">รหัสอุปกรณ์ใหม่ (Device ID):</label>
-          <input type="text" id="newWhitelistId" placeholder="เช่น SPK-001, SPK-002" required class="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2 text-sm font-mono font-bold text-slate-900 uppercase focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          <input type="text" id="newWhitelistId" placeholder="เช่น SPK-001, SPK-002" required class="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2 text-sm font-bold text-slate-900 uppercase focus:outline-none focus:ring-2 focus:ring-indigo-500">
         </div>
         <div class="flex-1 w-full">
           <label class="text-[11px] font-bold text-slate-600 mb-1 block">คำอธิบายสั้นๆ (ทางเลือก):</label>
@@ -150,12 +192,12 @@
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
           <label class="text-xs font-bold text-slate-700 mb-1.5 block">รหัสอุปกรณ์ (Device ID) *</label>
-          <input type="text" id="deviceIdInput" name="device_id" required placeholder="เช่น SPK-001" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-mono font-bold text-slate-900 uppercase focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+          <input type="text" id="deviceIdInput" name="device_id" required placeholder="เช่น SPK-001" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-bold text-slate-900 uppercase focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
         </div>
 
         <div>
           <label class="text-xs font-bold text-slate-700 mb-1.5 block">ชื่อจุดตรวจวัด</label>
-          <input type="text" id="deviceNameInput" name="device_name" placeholder="เช่น บ่อพักน้ำแยกบางพลี" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+          <input type="text" id="deviceNameInput" name="device_name" placeholder="เช่น บ่อพักน้ำแยกบางพลี" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
         </div>
 
         <div>
@@ -178,12 +220,12 @@
               <i data-lucide="crosshair" class="w-3.5 h-3.5"></i> ดึงตำแหน่งปัจจุบัน
             </button>
           </label>
-          <input type="number" step="any" id="latitudeInput" name="latitude" placeholder="13.606" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-mono text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+          <input type="number" step="any" id="latitudeInput" name="latitude" placeholder="13.606" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
         </div>
 
         <div>
           <label class="text-xs font-bold text-slate-700 mb-1.5 block">ลองจิจูด (Longitude)</label>
-          <input type="number" step="any" id="longitudeInput" name="longitude" placeholder="100.702" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-mono text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+          <input type="number" step="any" id="longitudeInput" name="longitude" placeholder="100.702" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
         </div>
       </div>
 
@@ -197,23 +239,23 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="text-xs font-bold text-slate-700 mb-1 block">ความลึกบ่อ/ระยะเซนเซอร์ถึงพื้นต่ำสุด (cm)</label>
-            <input type="number" step="any" id="tankHeightInput" name="tank_height_cm" value="83" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-mono font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <input type="number" step="any" id="tankHeightInput" name="tank_height_cm" value="83" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
             <span class="text-[11px] text-slate-400 mt-1 block">ความสูงจากพื้นล่างสุดถึงหน้าตัวเซนเซอร์</span>
           </div>
 
           <div>
             <label class="text-xs font-bold text-slate-700 mb-1 block">ระยะเผื่อยอดบน / Offset (cm)</label>
-            <input type="number" step="any" id="sensorOffsetInput" name="sensor_offset_cm" value="0" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-mono font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <input type="number" step="any" id="sensorOffsetInput" name="sensor_offset_cm" value="0" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
             <span class="text-[11px] text-slate-400 mt-1 block">ใส่ 0 หากวัดเทียบจากพื้นขึ้นมาตรงๆ</span>
           </div>
         </div>
       </div>
 
-      <!-- กำหนดเกณฑ์ระดับน้ำแจ้งเตือน (เตือนภัย, วิกฤต และ เสมอผิวถนน) -->
+      <!-- กำหนดเกณฑ์ระดับน้ำแจ้งเตือน (เตือนภัย, วิกฤต และ ระดับพื้น) -->
       <div class="space-y-2 pt-2 border-t border-slate-100">
         <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
           <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-500"></i>
-          <span>กำหนดเกณฑ์ระดับน้ำแจ้งเตือน (Threshold & Road Level)</span>
+          <span>กำหนดเกณฑ์ระดับน้ำแจ้งเตือน (Threshold & Ground Level)</span>
         </h3>
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -221,7 +263,7 @@
           <div class="bg-amber-50/70 border border-amber-200 p-3.5 rounded-2xl">
             <label class="text-xs font-bold text-amber-900 mb-1 block">เกณฑ์เตือนภัย (Warning Level)</label>
             <div class="flex items-center gap-2">
-              <input type="number" step="any" id="warningThresholdInput" name="warning_threshold_cm" value="25" class="w-full bg-white border border-amber-300 rounded-xl px-3 py-2 text-sm font-mono font-bold text-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+              <input type="number" step="any" id="warningThresholdInput" name="warning_threshold_cm" value="25" class="w-full bg-white border border-amber-300 rounded-xl px-3 py-2 text-sm font-bold text-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
               <span class="text-xs font-bold text-amber-800">cm.</span>
             </div>
             <span class="text-[10px] text-amber-700/80 mt-1 block">เมื่อน้ำลึกสูงกว่าหรือเท่ากับค่านี้</span>
@@ -231,7 +273,7 @@
           <div class="bg-rose-50/70 border border-rose-200 p-3.5 rounded-2xl">
             <label class="text-xs font-bold text-rose-900 mb-1 block">เกณฑ์วิกฤต (Critical Level)</label>
             <div class="flex items-center gap-2">
-              <input type="number" step="any" id="criticalThresholdInput" name="critical_threshold_cm" value="50" class="w-full bg-white border border-rose-300 rounded-xl px-3 py-2 text-sm font-mono font-bold text-rose-900 focus:outline-none focus:ring-2 focus:ring-rose-500">
+              <input type="number" step="any" id="criticalThresholdInput" name="critical_threshold_cm" value="50" class="w-full bg-white border border-rose-300 rounded-xl px-3 py-2 text-sm font-bold text-rose-900 focus:outline-none focus:ring-2 focus:ring-rose-500">
               <span class="text-xs font-bold text-rose-800">cm.</span>
             </div>
             <span class="text-[10px] text-rose-700/80 mt-1 block">เมื่อน้ำลึกสูงกว่าหรือเท่ากับค่านี้</span>
@@ -281,16 +323,11 @@
 
   </main>
 
-  <!-- ================= 3. NAVIGATION ล่างสุด ================= -->
+  <!-- ================= 3. NAVIGATION ล่างสุด (ตัดจำลองหน้าตัดออกแล้ว) ================= -->
   <nav class="fixed bottom-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-md border-t border-slate-200/90 px-4 md:px-8 flex items-center justify-around z-40 shadow-lg font-sans">
     <a href="/index.html" class="flex items-center gap-2 py-2 px-5 md:px-6 rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-semibold text-xs md:text-sm transition">
       <i data-lucide="layout-dashboard" class="w-4 h-4 md:w-5 md:h-5"></i>
       <span>ภาพรวมระบบ</span>
-    </a>
-
-    <a href="/pipe.html" class="flex items-center gap-2 py-2 px-5 md:px-6 rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-semibold text-xs md:text-sm transition">
-      <i data-lucide="paint-brush" class="w-4 h-4 md:w-5 md:h-5"></i>
-      <span>จำลองหน้าตัด</span>
     </a>
 
     <a href="/history.html" class="flex items-center gap-2 py-2 px-5 md:px-6 rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-semibold text-xs md:text-sm transition">
@@ -306,8 +343,64 @@
 
   <!-- ================= 4. JAVASCRIPT LOGIC ================= -->
   <script>
+    // รหัสผ่านผู้ดูแลระบบ (สามารถเปลี่ยนได้ที่นี่ หรือแมปกับระบบยืนยันตัวตน)
+    const ADMIN_PASSCODE = 'admin1234';
+
     let allDevices = [];
     let whitelistItems = [];
+
+    // ----------------------------------------------------
+    // ตรวจสอบสถานะการเข้าสู่ระบบ (Authentication)
+    // ----------------------------------------------------
+    function checkAuth() {
+      const isAuth = sessionStorage.getItem('isAdminAuthenticated');
+      const loginModal = document.getElementById('loginModal');
+      if (isAuth === 'true') {
+        loginModal.classList.add('hidden');
+        loadWhitelist();
+        loadAllDevices();
+      } else {
+        loginModal.classList.remove('hidden');
+      }
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const inputPass = document.getElementById('adminPasswordInput').value;
+      const errorMsg = document.getElementById('loginErrorMsg');
+
+      if (inputPass === ADMIN_PASSCODE) {
+        sessionStorage.setItem('isAdminAuthenticated', 'true');
+        errorMsg.classList.add('hidden');
+        document.getElementById('loginModal').classList.add('hidden');
+        loadWhitelist();
+        loadAllDevices();
+      } else {
+        errorMsg.classList.remove('hidden');
+        document.getElementById('adminPasswordInput').value = '';
+        document.getElementById('adminPasswordInput').focus();
+      }
+    });
+
+    function logoutAdmin() {
+      if (confirm('ต้องการออกจากระบบผู้ดูแลหรือไม่?')) {
+        sessionStorage.removeItem('isAdminAuthenticated');
+        window.location.reload();
+      }
+    }
+
+    function togglePasswordVisibility() {
+      const pwdInput = document.getElementById('adminPasswordInput');
+      const eyeIcon = document.getElementById('eyeIcon');
+      if (pwdInput.type === 'password') {
+        pwdInput.type = 'text';
+        eyeIcon.setAttribute('data-lucide', 'eye-off');
+      } else {
+        pwdInput.type = 'password';
+        eyeIcon.setAttribute('data-lucide', 'eye');
+      }
+      lucide.createIcons();
+    }
 
     // ----------------------------------------------------
     // จัดการ Whitelist
@@ -327,7 +420,7 @@
 
         tbody.innerHTML = whitelistItems.map(item => `
           <tr class="hover:bg-slate-50 transition">
-            <td class="py-2.5 px-3 font-mono font-bold text-indigo-700">${item.device_id}</td>
+            <td class="py-2.5 px-3 font-bold text-indigo-700">${item.device_id}</td>
             <td class="py-2.5 px-3 text-slate-600">${item.description || '-'}</td>
             <td class="py-2.5 px-3 text-slate-400 text-[11px]">${new Date(item.added_at).toLocaleDateString('th-TH')}</td>
             <td class="py-2.5 px-3 text-right">
@@ -484,8 +577,8 @@
       }
 
       try {
-        const res = await fetch(`/api/devices/${encodeURIComponent(devId)}`, {
-          method: 'DELETE'
+        const res = await fetch(`/api/devices/${encodeURIComponent(devId)}`,[cite: 1] {
+          method: 'DELETE'[cite: 1]
         });
 
         const data = await res.json();
@@ -519,7 +612,7 @@
       formData.append('sensor_offset_cm', document.getElementById('sensorOffsetInput').value);
       formData.append('warning_threshold_cm', document.getElementById('warningThresholdInput').value);
       formData.append('critical_threshold_cm', document.getElementById('criticalThresholdInput').value);
-      formData.append('road_level_cm', document.getElementById('roadLevelInput').value.trim()); // ส่งค่าเกณฑ์เสมอผิวถนน
+      formData.append('road_level_cm', document.getElementById('roadLevelInput').value.trim());
 
       const fileInput = document.getElementById('imageInput');
       if (fileInput.files[0]) {
@@ -552,8 +645,7 @@
 
     window.addEventListener('DOMContentLoaded', () => {
       lucide.createIcons();
-      loadWhitelist();
-      loadAllDevices();
+      checkAuth();
     });
   </script>
 </body>
