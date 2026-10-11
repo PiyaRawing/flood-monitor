@@ -343,7 +343,7 @@
 
   <!-- ================= 4. JAVASCRIPT LOGIC ================= -->
   <script>
-    // รหัสผ่านผู้ดูแลระบบ (สามารถเปลี่ยนได้ที่นี่ หรือแมปกับระบบยืนยันตัวตน)
+    // รหัสผ่านผู้ดูแลระบบ
     const ADMIN_PASSCODE = 'admin1234';
 
     let allDevices = [];
@@ -577,8 +577,8 @@
       }
 
       try {
-        const res = await fetch(`/api/devices/${encodeURIComponent(devId)}`,[cite: 1] {
-          method: 'DELETE'[cite: 1]
+        const res = await fetch(`/api/devices/${encodeURIComponent(devId)}`, {
+          method: 'DELETE'
         });
 
         const data = await res.json();
