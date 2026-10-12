@@ -371,6 +371,215 @@ app.get('/api/telemetry/history/:deviceId', async (req, res) => {
   }
 });
 
+// ----------------------------------------------------
+// 6. Rate Limiter Middleware (1 คำขอ / 5 วินาที ต่อ IP)
+// ----------------------------------------------------
+const apiRateLimitMap = new Map();
+const publicApiLimiter = (req, res, next) => {
+  // ดึง IP ของผู้เรียก (รองรับทั้งผ่าน Cloudflare Tunnel, Nginx Proxy และ Docker)
+  const clientIp = req.headers['cf-connecting-ip'] 
+    || req.headers['x-forwarded-for']?.split(',')[0].trim() 
+    || req.socket.remoteAddress;
+
+  const now = Date.now();
+  const limitWindowMs = 5000; // 5 วินาที
+
+  if (apiRateLimitMap.has(clientIp)) {
+    const lastReqTime = apiRateLimitMap.get(clientIp);
+    const timePassed = now - lastReqTime;
+
+    if (timePassed < limitWindowMs) {
+      const waitTimeSec = Math.ceil((limitWindowMs - timePassed) / 1000);
+      return res.status(429).json({
+        success: false,
+        error: `Too Many Requests: คำขอถี่เกินไป กรุณารอ ${waitTimeSec} วินาที (Rate limit: 1 ครั้งต่อ 5 วินาที)`
+      });
+    }
+  }
+
+  apiRateLimitMap.set(clientIp, now);
+  next();
+};
+
+// เคลียร์หน่วยความจำ IP เก่าทุก 1 นาที เพื่อไม่ให้กิน RAM
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, timestamp] of apiRateLimitMap.entries()) {
+    if (now - timestamp > 15000) {
+      apiRateLimitMap.delete(ip);
+    }
+  }
+}, 60000);
+
+// ----------------------------------------------------
+// 7. Public API Endpoints สำหรับระบบภายนอก & Home Assistant
+// ----------------------------------------------------
+
+// Endpoint 1: ดึงข้อมูลล่าสุดของ "ทุกจุดวัด"
+app.get('/api/v1/water-levels', publicApiLimiter, async (req, res) => {
+  try {
+    const devices = await DeviceConfig.find().lean();
+    const result = await Promise.all(devices.map(async (dev) => {
+      const latest = await Telemetry.findOne({ device_id: dev.device_id })
+        .sort({ created_at: -1 })
+        .lean();
+
+      const waterDepth = (latest && latest.water_depth_cm !== null) ? Number(latest.water_depth_cm) : null;
+      const groundLevel = (dev.road_level_cm !== null && dev.road_level_cm !== undefined) ? Number(dev.road_level_cm) : null;
+
+      let remainingToGround = null;
+      if (groundLevel !== null && waterDepth !== null) {
+        remainingToGround = Math.round((groundLevel - waterDepth) * 10) / 10;
+      }
+
+      return {
+        device_id: dev.device_id,
+        device_name: dev.device_name || `จุดวัด ${dev.device_id}`,
+        location_type: dev.location_type || 'ถนน',
+        coordinates: {
+          latitude: dev.latitude,
+          longitude: dev.longitude
+        },
+        water_depth_cm: waterDepth,
+        ground_level_cm: groundLevel,
+        remaining_to_ground_cm: remainingToGround,
+        raw_distance_cm: latest?.distance_cm ?? null,
+        battery_percent: latest?.battery_percent ?? null,
+        battery_voltage: latest?.battery_voltage ?? null,
+        signal: {
+          rssi: latest?.signal?.rssi ?? null,
+          snr: latest?.signal?.snr ?? null
+        },
+        mesh_path: latest?.hops_path || 'DIRECT',
+        last_updated: latest?.created_at || null
+      };
+    }));
+
+    res.json({
+      success: true,
+      count: result.length,
+      data: result
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Endpoint 2: ดึงข้อมูลล่าสุดของ "จุดวัดเฉพาะโหนด" (แนะนำสำหรับ Home Assistant)
+app.get('/api/v1/water-levels/:deviceId', publicApiLimiter, async (req, res) => {
+  try {
+    const devId = req.params.deviceId.trim().toUpperCase();
+    const dev = await DeviceConfig.findOne({ device_id: devId }).lean();
+
+    if (!dev) {
+      return res.status(404).json({ success: false, error: `ไม่พบอุปกรณ์ ${devId} ในระบบ` });
+    }
+
+    const latest = await Telemetry.findOne({ device_id: devId })
+      .sort({ created_at: -1 })
+      .lean();
+
+    const waterDepth = (latest && latest.water_depth_cm !== null) ? Number(latest.water_depth_cm) : null;
+    const groundLevel = (dev.road_level_cm !== null && dev.road_level_cm !== undefined) ? Number(dev.road_level_cm) : null;
+
+    let remainingToGround = null;
+    if (groundLevel !== null && waterDepth !== null) {
+      remainingToGround = Math.round((groundLevel - waterDepth) * 10) / 10;
+    }
+
+    res.json({
+      success: true,
+      device_id: dev.device_id,
+      device_name: dev.device_name || `จุดวัด ${dev.device_id}`,
+      location_type: dev.location_type || 'ถนน',
+      coordinates: {
+        latitude: dev.latitude,
+        longitude: dev.longitude
+      },
+      water_depth_cm: waterDepth,
+      ground_level_cm: groundLevel,
+      remaining_to_ground_cm: remainingToGround,
+      raw_distance_cm: latest?.distance_cm ?? null,
+      battery_percent: latest?.battery_percent ?? null,
+      battery_voltage: latest?.battery_voltage ?? null,
+      signal: {
+        rssi: latest?.signal?.rssi ?? null,
+        snr: latest?.signal?.snr ?? null
+      },
+      mesh_path: latest?.hops_path || 'DIRECT',
+      last_updated: latest?.created_at || null
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Endpoint 3: ดึงข้อมูลย้อนหลังของจุดวัด (รองรับเลือกช่วงเวลา หรือดึงทั้งหมดแบบจำกัด limit)
+app.get('/api/v1/water-levels/:deviceId/history', publicApiLimiter, async (req, res) => {
+  try {
+    const devId = req.params.deviceId.trim().toUpperCase();
+    const { timeframe = '24h', limit = 500 } = req.query;
+
+    // ตรวจสอบว่ามีอุปกรณ์นี้จริงไหม
+    const dev = await DeviceConfig.findOne({ device_id: devId }).lean();
+    if (!dev) {
+      return res.status(404).json({ success: false, error: `ไม่พบอุปกรณ์ ${devId} ในระบบ` });
+    }
+
+    // กำหนดเงื่อนไขเวลา
+    const query = { device_id: devId };
+    const now = Date.now();
+
+    if (timeframe === '1h') query.created_at = { $gte: new Date(now - 1 * 60 * 60 * 1000) };
+    else if (timeframe === '6h') query.created_at = { $gte: new Date(now - 6 * 60 * 60 * 1000) };
+    else if (timeframe === '24h') query.created_at = { $gte: new Date(now - 24 * 60 * 60 * 1000) };
+    else if (timeframe === '7d') query.created_at = { $gte: new Date(now - 7 * 24 * 60 * 60 * 1000) };
+    else if (timeframe === '30d') query.created_at = { $gte: new Date(now - 30 * 24 * 60 * 60 * 1000) };
+    // ถ้า timeframe === 'all' จะไม่ใส่เงื่อนไขเวลา คือดึงตั้งแต่เรคคอร์ดแรก
+
+    // จำกัดจำนวนเพื่อความปลอดภัยของ Server (สูงสุดไม่เกิน 2,000 จุดต่อคำขอ)
+    const maxLimit = Math.min(Math.max(1, Number(limit) || 500), 2000);
+
+    const historyLogs = await Telemetry.find(query)
+      .sort({ created_at: -1 }) // ดึงข้อมูลล่าสุดลงไป
+      .limit(maxLimit)
+      .lean();
+
+    const groundLevel = (dev.road_level_cm !== null && dev.road_level_cm !== undefined) ? Number(dev.road_level_cm) : null;
+
+    const formattedData = historyLogs.map(log => {
+      const waterDepth = log.water_depth_cm !== null ? Number(log.water_depth_cm) : null;
+      let remainingToGround = null;
+      if (groundLevel !== null && waterDepth !== null) {
+        remainingToGround = Math.round((groundLevel - waterDepth) * 10) / 10;
+      }
+
+      return {
+        timestamp: log.created_at,
+        packet_id: log.packet_id ?? null,
+        water_depth_cm: waterDepth,
+        remaining_to_ground_cm: remainingToGround,
+        raw_distance_cm: log.distance_cm ?? null,
+        battery_percent: log.battery_percent ?? null,
+        battery_voltage: log.battery_voltage ?? null,
+        rssi: log.signal?.rssi ?? null,
+        snr: log.signal?.snr ?? null,
+        mesh_path: log.hops_path || 'DIRECT'
+      };
+    });
+
+    res.json({
+      success: true,
+      device_id: devId,
+      timeframe: timeframe,
+      count: formattedData.length,
+      data: formattedData
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`LoRa Water Flood System running on port ${PORT}`);
 });

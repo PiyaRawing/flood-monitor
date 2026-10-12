@@ -299,6 +299,150 @@
 
     </div>
 
+    <!-- ================= 4. การเชื่อมต่อ REST API ================= -->
+    <section class="bg-white p-5 md:p-7 rounded-3xl border border-slate-200/90 shadow-sm space-y-5">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center shrink-0">
+            <i data-lucide="code-2" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h2 class="text-base md:text-lg font-bold text-slate-900">การเชื่อมต่อ REST API</h2>
+            <p class="text-xs text-slate-500">สำหรับดึงข้อมูลระดับน้ำสดและข้อมูลย้อนหลังไปใช้งานต่อในระบบภายนอก</p>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span> ไม่ต้องใช้ API Key
+          </span>
+          <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+            <i data-lucide="timer" class="w-3.5 h-3.5"></i> Rate Limit: 1 ครั้ง / 5 วินาที
+          </span>
+        </div>
+      </div>
+
+      <!-- รายละเอียด Endpoints 3 ช่อง -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        
+        <!-- Endpoint 1: ข้อมูลสดทุกจุดวัด -->
+        <div class="bg-slate-50/80 p-4 rounded-2xl border border-slate-200/70 flex flex-col justify-between space-y-3">
+          <div>
+            <div class="flex items-center justify-between gap-2 mb-1.5">
+              <span class="text-xs font-bold text-slate-700">1. ค่าล่าสุดของทุกจุดวัด</span>
+              <span class="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-600 text-white uppercase tracking-wider">GET</span>
+            </div>
+            <p class="text-[11px] text-slate-500">ส่งกลับ Array รวมข้อมูลล่าสุดของทุกจุดตรวจวัด</p>
+          </div>
+
+          <div class="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-slate-200">
+            <code id="apiAllEndpoint" class="text-xs font-bold text-indigo-600 select-all truncate flex-1 font-mono">/api/v1/water-levels</code>
+            <button onclick="copyToClipboard('apiAllEndpoint', this)" class="text-slate-400 hover:text-slate-700 transition shrink-0 p-1" title="คัดลอก URL เต็ม">
+              <i data-lucide="copy" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Endpoint 2: ข้อมูลสดจุดวัดนี้ -->
+        <div class="bg-slate-50/80 p-4 rounded-2xl border border-slate-200/70 flex flex-col justify-between space-y-3">
+          <div>
+            <div class="flex items-center justify-between gap-2 mb-1.5">
+              <span class="text-xs font-bold text-slate-700">2. ค่าล่าสุดของจุดวัดนี้</span>
+              <span class="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-600 text-white uppercase tracking-wider">GET</span>
+            </div>
+            <p class="text-[11px] text-slate-500">ส่งกลับ Object ข้อมูลล่าสุดของจุดวัดที่เลือก</p>
+          </div>
+
+          <div class="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-slate-200">
+            <code id="apiSingleEndpoint" class="text-xs font-bold text-indigo-600 select-all truncate flex-1 font-mono">/api/v1/water-levels/-</code>
+            <button onclick="copyToClipboard('apiSingleEndpoint', this)" class="text-slate-400 hover:text-slate-700 transition shrink-0 p-1" title="คัดลอก URL เต็ม">
+              <i data-lucide="copy" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Endpoint 3: ดึงข้อมูลย้อนหลัง -->
+        <div class="bg-slate-50/80 p-4 rounded-2xl border border-slate-200/70 flex flex-col justify-between space-y-3">
+          <div>
+            <div class="flex items-center justify-between gap-2 mb-1.5">
+              <span class="text-xs font-bold text-slate-700">3. ข้อมูลย้อนหลังของจุดวัดนี้</span>
+              <span class="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-600 text-white uppercase tracking-wider">GET</span>
+            </div>
+            <p class="text-[11px] text-slate-500">ดึงประวัติย้อนหลังตามช่วงเวลาและจำนวนที่กำหนด</p>
+          </div>
+
+          <div class="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-slate-200">
+            <code id="apiHistoryEndpoint" class="text-xs font-bold text-indigo-600 select-all truncate flex-1 font-mono">/api/v1/water-levels/-/history?timeframe=24h</code>
+            <button onclick="copyToClipboard('apiHistoryEndpoint', this)" class="text-slate-400 hover:text-slate-700 transition shrink-0 p-1" title="คัดลอก URL เต็ม">
+              <i data-lucide="copy" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- รายละเอียด Parameter การดึงย้อนหลัง -->
+      <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-2">
+        <span class="text-xs font-bold text-slate-700 block">พารามิเตอร์เสริมสำหรับดึงย้อนหลัง (Query Parameters):</span>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-600">
+          <div>
+            <code class="font-mono font-bold text-indigo-600">timeframe</code> : ช่วงเวลาย้อนหลังที่ต้องการ
+            <div class="text-[11px] text-slate-400 mt-0.5">
+              เลือกได้: <code class="bg-white px-1 py-0.5 rounded border">1h</code>, <code class="bg-white px-1 py-0.5 rounded border">6h</code>, <code class="bg-white px-1 py-0.5 rounded border">24h</code> (ค่าเริ่มต้น), <code class="bg-white px-1 py-0.5 rounded border">7d</code>, <code class="bg-white px-1 py-0.5 rounded border">30d</code>, หรือ <code class="bg-white px-1 py-0.5 rounded border">all</code> (ทั้งหมดตั้งแต่เริ่มบันทึก)
+            </div>
+          </div>
+          <div>
+            <code class="font-mono font-bold text-indigo-600">limit</code> : จำนวนข้อมูลสูงสุดที่ส่งกลับ
+            <div class="text-[11px] text-slate-400 mt-0.5">
+              ตัวเลขจำนวนเต็ม (ค่าเริ่มต้น 500 จุด, สูงสุดไม่เกิน 2,000 จุดต่อคำขอ)
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ตัวอย่าง Response JSON -->
+      <div class="space-y-2 pt-1">
+        <label class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+          <i data-lucide="file-json" class="w-4 h-4 text-emerald-600"></i>
+          <span>ตัวอย่างโครงสร้างข้อมูลตอบกลับย้อนหลัง (JSON Response):</span>
+        </label>
+        <div class="bg-slate-900 text-slate-200 rounded-2xl p-4 overflow-x-auto text-xs font-mono custom-scroll leading-relaxed shadow-inner">
+<pre>{
+  "success": true,
+  "device_id": "SPK-001",
+  "timeframe": "24h",
+  "count": 2,
+  "data": [
+    {
+      "timestamp": "2026-10-12T08:30:00.000Z",
+      "packet_id": 142,
+      "water_depth_cm": 18.5,
+      "remaining_to_ground_cm": 51.5,
+      "raw_distance_cm": 64.5,
+      "battery_percent": 95,
+      "battery_voltage": 4.12,
+      "rssi": -85,
+      "snr": 8.5,
+      "mesh_path": "DIRECT"
+    },
+    {
+      "timestamp": "2026-10-12T08:25:00.000Z",
+      "packet_id": 141,
+      "water_depth_cm": 18.2,
+      "remaining_to_ground_cm": 51.8,
+      "raw_distance_cm": 64.8,
+      "battery_percent": 95,
+      "battery_voltage": 4.12,
+      "rssi": -86,
+      "snr": 8.0,
+      "mesh_path": "DIRECT"
+    }
+  ]
+}</pre>
+        </div>
+      </div>
+    </section>
+
   </main>
 
   <!-- ================= 3. NAVIGATION ล่างสุด ================= -->
@@ -413,6 +557,7 @@
 
         updateBrowserUrl(currentDeviceId);
         updateDeviceInfoUI();
+        updateApiGuideUI();
         lastLatestLogId = '';
         loadHistoryData(true);
       } catch (err) {
@@ -483,6 +628,35 @@
         nightLegend.classList.add('hidden');
         nightLegend.classList.remove('inline-flex');
       }
+    }
+
+    // อัปเดต URL ในคู่มือ API ตามอุปกรณ์ที่เลือก
+    function updateApiGuideUI() {
+      const origin = window.location.origin;
+      const allUrl = `${origin}/api/v1/water-levels`;
+      const singleUrl = `${origin}/api/v1/water-levels/${currentDeviceId || 'SPK-001'}`;
+      const historyUrl = `${origin}/api/v1/water-levels/${currentDeviceId || 'SPK-001'}/history?timeframe=24h`;
+
+      const allEl = document.getElementById('apiAllEndpoint');
+      const singleEl = document.getElementById('apiSingleEndpoint');
+      const historyEl = document.getElementById('apiHistoryEndpoint');
+
+      if (allEl) allEl.innerText = allUrl;
+      if (singleEl) singleEl.innerText = singleUrl;
+      if (historyEl) historyEl.innerText = historyUrl;
+    }
+
+    function copyToClipboard(elementId, btn) {
+      const text = document.getElementById(elementId).innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i data-lucide="check" class="w-4 h-4 text-emerald-600"></i>';
+        lucide.createIcons();
+        setTimeout(() => {
+          btn.innerHTML = originalHtml;
+          lucide.createIcons();
+        }, 1500);
+      });
     }
 
     // 2. Downsample ข้อมูลกราฟ
@@ -951,6 +1125,7 @@
       currentDeviceId = e.target.value;
       updateBrowserUrl(currentDeviceId);
       updateDeviceInfoUI();
+      updateApiGuideUI();
       lastLatestLogId = '';
       loadHistoryData(true);
     });
