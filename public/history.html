@@ -51,6 +51,28 @@
 </head>
 <body class="bg-slate-50 text-slate-800 antialiased flex flex-col min-h-screen pb-24 font-sans">
 
+  <!-- ================= 0. MODAL แจ้งเตือนข้อจำกัดความรับผิดชอบ ================= -->
+  <div id="disclaimerModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 transition-opacity duration-300">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl border border-slate-100 text-center space-y-3.5">
+      <div class="w-11 h-11 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
+        <i data-lucide="info" class="w-6 h-6"></i>
+      </div>
+      <div>
+        <h3 class="text-base font-black text-slate-900">ข้อชี้แจงการใช้งานข้อมูล</h3>
+        <p class="text-xs text-slate-600 mt-1.5 leading-relaxed">
+          ข้อมูลระดับน้ำ <span class="text-amber-700 font-bold">อาจมีความคลาดเคลื่อนตามสภาพแวดล้อมหน้างาน</span> โปรดใช้ประกอบการตัดสินใจเบื้องต้นเท่านั้น
+        </p>
+        <div class="mt-2 text-[11px] font-bold text-sky-700 bg-sky-50 py-1.5 px-3 rounded-xl border border-sky-200/80 inline-flex items-center gap-1.5">
+          <i data-lucide="code-2" class="w-3.5 h-3.5 text-sky-600"></i>
+          <span>ระบบเปิดให้บริการเชื่อมต่อดึงข้อมูลผ่าน REST API</span>
+        </div>
+      </div>
+      <button onclick="closeDisclaimer()" class="w-full py-2.5 px-4 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs md:text-sm font-bold transition shadow-md shadow-brand-500/20">
+        รับทราบและเข้าใช้งาน
+      </button>
+    </div>
+  </div>
+
   <!-- ================= 1. HEADER ด้านบน ================= -->
   <header class="bg-white border-b border-slate-200/80 px-4 md:px-6 py-4 flex items-center justify-between shadow-sm sticky top-0 z-30">
     <div class="flex items-center gap-3.5">
@@ -183,15 +205,15 @@
       </div>
     </div>
 
-    <!-- ================= ปุ่มกดสลับแสดง/ซ่อนข้อมูลเชิงลึก ================= -->
+    <!-- ================= ปุ่มกดสลับแสดง/ซ่อนข้อมูลเชิงลึก & API ================= -->
     <div class="flex justify-center pt-1">
       <button onclick="toggleDetailsSection()" id="btnToggleDetails" class="inline-flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-2xl text-xs md:text-sm font-bold shadow-xs transition duration-200">
         <i data-lucide="chevron-down" id="toggleIcon" class="w-4 h-4 transition-transform duration-200"></i>
-        <span id="toggleText">แสดงข้อมูลเชิงลึก & ประวัติเครือข่าย</span>
+        <span id="toggleText">แสดงข้อมูลเชิงลึก & API</span>
       </button>
     </div>
 
-    <!-- ================= ส่วนที่ซ่อนไว้เริ่มต้น (กราฟแบตเตอรี่, สถานะย่อย, และตาราง) ================= -->
+    <!-- ================= ส่วนที่ซ่อนไว้เริ่มต้น (กราฟแบตเตอรี่, ตาราง, และ API) ================= -->
     <div id="detailsCollapsibleSection" class="hidden space-y-5">
       
       <!-- กราฟที่ 2: กราฟแบตเตอรี่ -->
@@ -297,116 +319,112 @@
         </div>
       </div>
 
-    </div>
-
-    <!-- ================= 4. การเชื่อมต่อ REST API ================= -->
-    <section class="bg-white p-5 md:p-7 rounded-3xl border border-slate-200/90 shadow-sm space-y-5">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center shrink-0">
-            <i data-lucide="code-2" class="w-5 h-5"></i>
-          </div>
-          <div>
-            <h2 class="text-base md:text-lg font-bold text-slate-900">การเชื่อมต่อ REST API</h2>
-            <p class="text-xs text-slate-500">สำหรับดึงข้อมูลระดับน้ำสดและข้อมูลย้อนหลังไปใช้งานต่อในระบบภายนอก</p>
-          </div>
-        </div>
-
-        <div class="flex flex-wrap items-center gap-2">
-          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-            <span class="w-2 h-2 rounded-full bg-emerald-500"></span> ไม่ต้องใช้ API Key
-          </span>
-          <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
-            <i data-lucide="timer" class="w-3.5 h-3.5"></i> Rate Limit: 1 ครั้ง / 5 วินาที
-          </span>
-        </div>
-      </div>
-
-      <!-- รายละเอียด Endpoints 3 ช่อง -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        
-        <!-- Endpoint 1: ข้อมูลสดทุกจุดวัด -->
-        <div class="bg-slate-50/80 p-4 rounded-2xl border border-slate-200/70 flex flex-col justify-between space-y-3">
-          <div>
-            <div class="flex items-center justify-between gap-2 mb-1.5">
-              <span class="text-xs font-bold text-slate-700">1. ค่าล่าสุดของทุกจุดวัด</span>
-              <span class="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-600 text-white uppercase tracking-wider">GET</span>
+      <!-- ================= การเชื่อมต่อ REST API ================= -->
+      <section class="bg-white p-5 md:p-7 rounded-3xl border border-slate-200/90 shadow-sm space-y-5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center shrink-0">
+              <i data-lucide="code-2" class="w-5 h-5"></i>
             </div>
-            <p class="text-[11px] text-slate-500">ส่งกลับ Array รวมข้อมูลล่าสุดของทุกจุดตรวจวัด</p>
-          </div>
-
-          <div class="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-slate-200">
-            <code id="apiAllEndpoint" class="text-xs font-bold text-indigo-600 select-all truncate flex-1 font-mono">/api/v1/water-levels</code>
-            <button onclick="copyToClipboard('apiAllEndpoint', this)" class="text-slate-400 hover:text-slate-700 transition shrink-0 p-1" title="คัดลอก URL เต็ม">
-              <i data-lucide="copy" class="w-4 h-4"></i>
-            </button>
-          </div>
-        </div>
-
-        <!-- Endpoint 2: ข้อมูลสดจุดวัดนี้ -->
-        <div class="bg-slate-50/80 p-4 rounded-2xl border border-slate-200/70 flex flex-col justify-between space-y-3">
-          <div>
-            <div class="flex items-center justify-between gap-2 mb-1.5">
-              <span class="text-xs font-bold text-slate-700">2. ค่าล่าสุดของจุดวัดนี้</span>
-              <span class="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-600 text-white uppercase tracking-wider">GET</span>
-            </div>
-            <p class="text-[11px] text-slate-500">ส่งกลับ Object ข้อมูลล่าสุดของจุดวัดที่เลือก</p>
-          </div>
-
-          <div class="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-slate-200">
-            <code id="apiSingleEndpoint" class="text-xs font-bold text-indigo-600 select-all truncate flex-1 font-mono">/api/v1/water-levels/-</code>
-            <button onclick="copyToClipboard('apiSingleEndpoint', this)" class="text-slate-400 hover:text-slate-700 transition shrink-0 p-1" title="คัดลอก URL เต็ม">
-              <i data-lucide="copy" class="w-4 h-4"></i>
-            </button>
-          </div>
-        </div>
-
-        <!-- Endpoint 3: ดึงข้อมูลย้อนหลัง -->
-        <div class="bg-slate-50/80 p-4 rounded-2xl border border-slate-200/70 flex flex-col justify-between space-y-3">
-          <div>
-            <div class="flex items-center justify-between gap-2 mb-1.5">
-              <span class="text-xs font-bold text-slate-700">3. ข้อมูลย้อนหลังของจุดวัดนี้</span>
-              <span class="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-600 text-white uppercase tracking-wider">GET</span>
-            </div>
-            <p class="text-[11px] text-slate-500">ดึงประวัติย้อนหลังตามช่วงเวลาและจำนวนที่กำหนด</p>
-          </div>
-
-          <div class="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-slate-200">
-            <code id="apiHistoryEndpoint" class="text-xs font-bold text-indigo-600 select-all truncate flex-1 font-mono">/api/v1/water-levels/-/history?timeframe=24h</code>
-            <button onclick="copyToClipboard('apiHistoryEndpoint', this)" class="text-slate-400 hover:text-slate-700 transition shrink-0 p-1" title="คัดลอก URL เต็ม">
-              <i data-lucide="copy" class="w-4 h-4"></i>
-            </button>
-          </div>
-        </div>
-
-      </div>
-
-      <!-- รายละเอียด Parameter การดึงย้อนหลัง -->
-      <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-2">
-        <span class="text-xs font-bold text-slate-700 block">พารามิเตอร์เสริมสำหรับดึงย้อนหลัง (Query Parameters):</span>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-600">
-          <div>
-            <code class="font-mono font-bold text-indigo-600">timeframe</code> : ช่วงเวลาย้อนหลังที่ต้องการ
-            <div class="text-[11px] text-slate-400 mt-0.5">
-              เลือกได้: <code class="bg-white px-1 py-0.5 rounded border">1h</code>, <code class="bg-white px-1 py-0.5 rounded border">6h</code>, <code class="bg-white px-1 py-0.5 rounded border">24h</code> (ค่าเริ่มต้น), <code class="bg-white px-1 py-0.5 rounded border">7d</code>, <code class="bg-white px-1 py-0.5 rounded border">30d</code>, หรือ <code class="bg-white px-1 py-0.5 rounded border">all</code> (ทั้งหมดตั้งแต่เริ่มบันทึก)
+            <div>
+              <h2 class="text-base md:text-lg font-bold text-slate-900">การเชื่อมต่อ REST API</h2>
+              <p class="text-xs text-slate-500">สำหรับดึงข้อมูลระดับน้ำสดและข้อมูลย้อนหลังไปใช้งานต่อในระบบภายนอก</p>
             </div>
           </div>
-          <div>
-            <code class="font-mono font-bold text-indigo-600">limit</code> : จำนวนข้อมูลสูงสุดที่ส่งกลับ
-            <div class="text-[11px] text-slate-400 mt-0.5">
-              ตัวเลขจำนวนเต็ม (ค่าเริ่มต้น 500 จุด, สูงสุดไม่เกิน 2,000 จุดต่อคำขอ)
+
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <span class="w-2 h-2 rounded-full bg-emerald-500"></span> ไม่ต้องใช้ API Key
+            </span>
+            <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+              <i data-lucide="timer" class="w-3.5 h-3.5"></i> Rate Limit: 1 ครั้ง / 5 วินาที
+            </span>
+          </div>
+        </div>
+
+        <!-- รายละเอียด Endpoints 3 ช่อง -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- Endpoint 1: ข้อมูลสดทุกจุดวัด -->
+          <div class="bg-slate-50/80 p-4 rounded-2xl border border-slate-200/70 flex flex-col justify-between space-y-3">
+            <div>
+              <div class="flex items-center justify-between gap-2 mb-1.5">
+                <span class="text-xs font-bold text-slate-700">1. ค่าล่าสุดของทุกจุดวัด</span>
+                <span class="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-600 text-white uppercase tracking-wider">GET</span>
+              </div>
+              <p class="text-[11px] text-slate-500">ส่งกลับ Array รวมข้อมูลล่าสุดของทุกจุดตรวจวัด</p>
+            </div>
+
+            <div class="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-slate-200">
+              <code id="apiAllEndpoint" class="text-xs font-bold text-indigo-600 select-all truncate flex-1 font-mono">/api/v1/water-levels</code>
+              <button onclick="copyToClipboard('apiAllEndpoint', this)" class="text-slate-400 hover:text-slate-700 transition shrink-0 p-1" title="คัดลอก URL เต็ม">
+                <i data-lucide="copy" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Endpoint 2: ข้อมูลสดจุดวัดนี้ -->
+          <div class="bg-slate-50/80 p-4 rounded-2xl border border-slate-200/70 flex flex-col justify-between space-y-3">
+            <div>
+              <div class="flex items-center justify-between gap-2 mb-1.5">
+                <span class="text-xs font-bold text-slate-700">2. ค่าล่าสุดของจุดวัดนี้</span>
+                <span class="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-600 text-white uppercase tracking-wider">GET</span>
+              </div>
+              <p class="text-[11px] text-slate-500">ส่งกลับ Object ข้อมูลล่าสุดของจุดวัดที่เลือก</p>
+            </div>
+
+            <div class="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-slate-200">
+              <code id="apiSingleEndpoint" class="text-xs font-bold text-indigo-600 select-all truncate flex-1 font-mono">/api/v1/water-levels/-</code>
+              <button onclick="copyToClipboard('apiSingleEndpoint', this)" class="text-slate-400 hover:text-slate-700 transition shrink-0 p-1" title="คัดลอก URL เต็ม">
+                <i data-lucide="copy" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Endpoint 3: ดึงข้อมูลย้อนหลัง -->
+          <div class="bg-slate-50/80 p-4 rounded-2xl border border-slate-200/70 flex flex-col justify-between space-y-3">
+            <div>
+              <div class="flex items-center justify-between gap-2 mb-1.5">
+                <span class="text-xs font-bold text-slate-700">3. ข้อมูลย้อนหลังของจุดวัดนี้</span>
+                <span class="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-600 text-white uppercase tracking-wider">GET</span>
+              </div>
+              <p class="text-[11px] text-slate-500">ดึงประวัติย้อนหลังตามช่วงเวลาและจำนวนที่กำหนด</p>
+            </div>
+
+            <div class="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-slate-200">
+              <code id="apiHistoryEndpoint" class="text-xs font-bold text-indigo-600 select-all truncate flex-1 font-mono">/api/v1/water-levels/-/history?timeframe=24h</code>
+              <button onclick="copyToClipboard('apiHistoryEndpoint', this)" class="text-slate-400 hover:text-slate-700 transition shrink-0 p-1" title="คัดลอก URL เต็ม">
+                <i data-lucide="copy" class="w-4 h-4"></i>
+              </button>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- ตัวอย่าง Response JSON -->
-      <div class="space-y-2 pt-1">
-        <label class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-          <i data-lucide="file-json" class="w-4 h-4 text-emerald-600"></i>
-          <span>ตัวอย่างโครงสร้างข้อมูลตอบกลับย้อนหลัง (JSON Response):</span>
-        </label>
-        <div class="bg-slate-900 text-slate-200 rounded-2xl p-4 overflow-x-auto text-xs font-mono custom-scroll leading-relaxed shadow-inner">
+        <!-- รายละเอียด Parameter การดึงย้อนหลัง -->
+        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-2">
+          <span class="text-xs font-bold text-slate-700 block">พารามิเตอร์เสริมสำหรับดึงย้อนหลัง (Query Parameters):</span>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-600">
+            <div>
+              <code class="font-mono font-bold text-indigo-600">timeframe</code> : ช่วงเวลาย้อนหลังที่ต้องการ
+              <div class="text-[11px] text-slate-400 mt-0.5">
+                เลือกได้: <code class="bg-white px-1 py-0.5 rounded border">1h</code>, <code class="bg-white px-1 py-0.5 rounded border">6h</code>, <code class="bg-white px-1 py-0.5 rounded border">24h</code> (ค่าเริ่มต้น), <code class="bg-white px-1 py-0.5 rounded border">7d</code>, <code class="bg-white px-1 py-0.5 rounded border">30d</code>, หรือ <code class="bg-white px-1 py-0.5 rounded border">all</code>
+              </div>
+            </div>
+            <div>
+              <code class="font-mono font-bold text-indigo-600">limit</code> : จำนวนข้อมูลสูงสุดที่ส่งกลับ
+              <div class="text-[11px] text-slate-400 mt-0.5">
+                ตัวเลขจำนวนเต็ม (ค่าเริ่มต้น 500 จุด, สูงสุดไม่เกิน 2,000 จุดต่อคำขอ)
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ตัวอย่าง Response JSON -->
+        <div class="space-y-2 pt-1">
+          <label class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+            <i data-lucide="file-json" class="w-4 h-4 text-emerald-600"></i>
+            <span>ตัวอย่างโครงสร้างข้อมูลตอบกลับย้อนหลัง (JSON Response):</span>
+          </label>
+          <div class="bg-slate-900 text-slate-200 rounded-2xl p-4 overflow-x-auto text-xs font-mono custom-scroll leading-relaxed shadow-inner">
 <pre>{
   "success": true,
   "device_id": "SPK-001",
@@ -414,7 +432,7 @@
   "count": 2,
   "data": [
     {
-      "timestamp": "2026-10-12T08:30:00.000Z",
+      "timestamp": "2026-10-14T08:30:00.000Z",
       "packet_id": 142,
       "water_depth_cm": 18.5,
       "remaining_to_ground_cm": 51.5,
@@ -424,24 +442,14 @@
       "rssi": -85,
       "snr": 8.5,
       "mesh_path": "DIRECT"
-    },
-    {
-      "timestamp": "2026-10-12T08:25:00.000Z",
-      "packet_id": 141,
-      "water_depth_cm": 18.2,
-      "remaining_to_ground_cm": 51.8,
-      "raw_distance_cm": 64.8,
-      "battery_percent": 95,
-      "battery_voltage": 4.12,
-      "rssi": -86,
-      "snr": 8.0,
-      "mesh_path": "DIRECT"
     }
   ]
 }</pre>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+
+    </div>
 
   </main>
 
@@ -456,7 +464,6 @@
       <i data-lucide="line-chart" class="w-4 h-4 md:w-5 md:h-5"></i>
       <span>ข้อมูลย้อนหลัง</span>
     </a>
-
   </nav>
 
   <!-- ================= JAVASCRIPT LOGIC ================= -->
@@ -474,7 +481,16 @@
     const urlParams = new URLSearchParams(window.location.search);
     const paramDevice = urlParams.get('device');
 
-    // ฟังก์ชัน สลับการแสดง/ซ่อน ส่วนข้อมูลเชิงลึก
+    // ฟังก์ชันปิด Modal ข้อจำกัดความรับผิดชอบ
+    function closeDisclaimer() {
+      const modal = document.getElementById('disclaimerModal');
+      if (modal) {
+        modal.classList.add('opacity-0', 'pointer-events-none');
+        setTimeout(() => modal.remove(), 300);
+      }
+    }
+
+    // ฟังก์ชัน สลับการแสดง/ซ่อน ส่วนข้อมูลเชิงลึก & API
     function toggleDetailsSection() {
       const section = document.getElementById('detailsCollapsibleSection');
       const icon = document.getElementById('toggleIcon');
@@ -484,7 +500,7 @@
 
       if (isDetailsVisible) {
         section.classList.remove('hidden');
-        text.innerText = 'ซ่อนข้อมูลเชิงลึก';
+        text.innerText = 'ซ่อนข้อมูลเชิงลึก & API';
         icon.classList.add('rotate-180');
         // เรนเดอร์กราฟแบตเตอรี่ใหม่เพื่อให้สเกล canvas พอดีกับกล่องที่เพิ่งเปิด
         if (currentProcessedLogs && currentProcessedLogs.length > 0) {
@@ -492,7 +508,7 @@
         }
       } else {
         section.classList.add('hidden');
-        text.innerText = 'แสดงข้อมูลเชิงลึก & ประวัติเครือข่าย';
+        text.innerText = 'แสดงข้อมูลเชิงลึก & API';
         icon.classList.remove('rotate-180');
       }
     }
@@ -747,7 +763,6 @@
 
         renderWaterChart(currentProcessedLogs);
         
-        // เรนเดอร์กราฟแบตเตอรี่เฉพาะเมื่อเปิดแสดง
         if (isDetailsVisible) {
           renderBatteryChart(currentProcessedLogs);
         }
