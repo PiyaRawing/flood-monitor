@@ -125,7 +125,7 @@
       </div>
     </div>
 
-    <!-- ================= METRICS: ระดับน้ำปัจจุบัน + ระยะถึงระดับพื้น (เต็มความกว้าง) ================= -->
+    <!-- ================= METRICS: ระดับน้ำปัจจุบัน + ระยะถึงระดับพื้น ================= -->
     <div class="w-full bg-gradient-to-br from-white to-orange-50/40 p-6 md:p-8 rounded-3xl border border-orange-200/80 shadow-sm flex flex-col justify-between relative overflow-hidden">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2 text-brand-600 font-bold text-sm md:text-base">
@@ -466,12 +466,11 @@
     let latestTelemetryDate = null;
     let lastLatestLogId = '';
     let isDetailsVisible = false;
-    let historyAbortController = null; // ป้องกันคำขอยิงชนกัน
+    let historyAbortController = null;
 
     const urlParams = new URLSearchParams(window.location.search);
     const paramDevice = urlParams.get('device');
 
-    // ฟังก์ชันปิด Modal ข้อจำกัดความรับผิดชอบ
     function closeDisclaimer() {
       const modal = document.getElementById('disclaimerModal');
       if (modal) {
@@ -480,7 +479,6 @@
       }
     }
 
-    // ฟังก์ชัน สลับการแสดง/ซ่อน ส่วนข้อมูลเชิงลึก & API
     function toggleDetailsSection() {
       const section = document.getElementById('detailsCollapsibleSection');
       const icon = document.getElementById('toggleIcon');
@@ -502,7 +500,6 @@
       }
     }
 
-    // Plugin ไฮไลต์กลางคืน
     const nightTimeHighlightPlugin = {
       id: 'nightTimeHighlight',
       beforeDraw: (chart) => {
@@ -576,7 +573,7 @@
       window.history.pushState({ device: devId }, '', newUrl);
     }
 
-    // แก้ไข: ป้องกัน Crash ตรวจสอบ element ทุกตัวก่อน set innerText
+    // คลีนโค้ดส่วนที่เรียก id ที่ไม่มีอยู่ออกทั้งหมดแล้ว
     function updateDeviceInfoUI() {
       const dev = allDevices.find(d => d.device_id === currentDeviceId);
       const imgEl = document.getElementById('deviceImage');
@@ -603,39 +600,6 @@
         }
       }
 
-      const badgeWarn = document.getElementById('badgeWarnThresh');
-      const valWarn = document.getElementById('valWarnThresh');
-      if (badgeWarn && valWarn) {
-        if (dev && dev.warning_threshold_cm !== undefined && dev.warning_threshold_cm !== null) {
-          valWarn.innerText = dev.warning_threshold_cm;
-          badgeWarn.classList.remove('hidden');
-        } else {
-          badgeWarn.classList.add('hidden');
-        }
-      }
-
-      const badgeCrit = document.getElementById('badgeCritThresh');
-      const valCrit = document.getElementById('valCritThresh');
-      if (badgeCrit && valCrit) {
-        if (dev && dev.critical_threshold_cm !== undefined && dev.critical_threshold_cm !== null) {
-          valCrit.innerText = dev.critical_threshold_cm;
-          badgeCrit.classList.remove('hidden');
-        } else {
-          badgeCrit.classList.add('hidden');
-        }
-      }
-
-      const badgeRoad = document.getElementById('badgeRoadThresh');
-      const valRoad = document.getElementById('valRoadThresh');
-      if (badgeRoad && valRoad) {
-        if (dev && dev.road_level_cm !== undefined && dev.road_level_cm !== null && dev.road_level_cm !== '') {
-          valRoad.innerText = dev.road_level_cm;
-          badgeRoad.classList.remove('hidden');
-        } else {
-          badgeRoad.classList.add('hidden');
-        }
-      }
-
       const nightLegend = document.getElementById('nightLegend');
       if (nightLegend) {
         if (currentTimeframe === '1h' || currentTimeframe === '6h' || currentTimeframe === '24h') {
@@ -648,7 +612,6 @@
       }
     }
 
-    // อัปเดต URL ในคู่มือ API ตามอุปกรณ์ที่เลือก
     function updateApiGuideUI() {
       const origin = window.location.origin;
       const allUrl = `${origin}/api/v1/water-levels`;
@@ -665,8 +628,9 @@
     }
 
     function copyToClipboard(elementId, btn) {
-      const text = document.getElementById(elementId).innerText;
-      navigator.clipboard.writeText(text).then(() => {
+      const el = document.getElementById(elementId);
+      if (!el) return;
+      navigator.clipboard.writeText(el.innerText).then(() => {
         const originalHtml = btn.innerHTML;
         btn.innerHTML = '<i data-lucide="check" class="w-4 h-4 text-emerald-600"></i>';
         lucide.createIcons();
@@ -742,7 +706,7 @@
       return aggregated;
     }
 
-    // 3. โหลดข้อมูลประวัติ & กราฟ (รองรับ AbortController)
+    // 3. โหลดข้อมูลประวัติ & กราฟ
     async function loadHistoryData(forceUpdate = false) {
       if (!currentDeviceId) return;
 
@@ -807,7 +771,6 @@
       const waterDepth = (latest.water_depth_cm !== null && latest.water_depth_cm !== undefined) ? Number(latest.water_depth_cm) : 0;
       document.getElementById('metricWaterDepth').innerText = latest.water_depth_cm !== null ? latest.water_depth_cm : '-';
 
-      // คำนวณระยะห่างถึงระดับพื้น
       const dev = allDevices.find(d => d.device_id === currentDeviceId);
       const groundBox = document.getElementById('groundDistanceBox');
       const groundValEl = document.getElementById('metricDistanceToGround');
@@ -969,7 +932,6 @@
         }
       ];
 
-      // 1. เส้นระดับพื้น
       if (dev && dev.road_level_cm !== undefined && dev.road_level_cm !== null && dev.road_level_cm !== '' && logs.length > 0) {
         datasets.push({
           label: `ระดับพื้น (${dev.road_level_cm} cm)`,
@@ -985,7 +947,6 @@
         });
       }
 
-      // 2. เส้นเตือนภัย
       if (dev && dev.warning_threshold_cm !== undefined && dev.warning_threshold_cm !== null && logs.length > 0) {
         datasets.push({
           label: `เกณฑ์เตือนภัย (${dev.warning_threshold_cm} cm)`,
@@ -1001,7 +962,6 @@
         });
       }
 
-      // 3. เส้นวิกฤต
       if (dev && dev.critical_threshold_cm !== undefined && dev.critical_threshold_cm !== null && logs.length > 0) {
         datasets.push({
           label: `เกณฑ์วิกฤต (${dev.critical_threshold_cm} cm)`,
@@ -1149,7 +1109,6 @@
       updateDeviceInfoUI();
       lastLatestLogId = '';
 
-      // แจ้งสถานะ Loading ทันที
       const recCount = document.getElementById('recordCount');
       if (recCount) recCount.innerText = 'กำลังโหลด...';
 
@@ -1163,7 +1122,6 @@
       updateApiGuideUI();
       lastLatestLogId = '';
 
-      // แจ้งสถานะ Loading ทันที
       const recCount = document.getElementById('recordCount');
       if (recCount) recCount.innerText = 'กำลังโหลด...';
       const tbody = document.getElementById('historyTableBody');
