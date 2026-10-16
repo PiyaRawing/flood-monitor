@@ -466,6 +466,7 @@
     let latestTelemetryDate = null;
     let lastLatestLogId = '';
     let isDetailsVisible = false;
+    let historyAbortController = null; // ป้องกันคำขอยิงชนกัน
 
     const urlParams = new URLSearchParams(window.location.search);
     const paramDevice = urlParams.get('device');
@@ -491,7 +492,6 @@
         section.classList.remove('hidden');
         text.innerText = 'ซ่อนข้อมูลเชิงลึก & API';
         icon.classList.add('rotate-180');
-        // เรนเดอร์กราฟแบตเตอรี่ใหม่เพื่อให้สเกล canvas พอดีกับกล่องที่เพิ่งเปิด
         if (currentProcessedLogs && currentProcessedLogs.length > 0) {
           renderBatteryChart(currentProcessedLogs);
         }
@@ -576,6 +576,7 @@
       window.history.pushState({ device: devId }, '', newUrl);
     }
 
+    // แก้ไข: ป้องกัน Crash ตรวจสอบ element ทุกตัวก่อน set innerText
     function updateDeviceInfoUI() {
       const dev = allDevices.find(d => d.device_id === currentDeviceId);
       const imgEl = document.getElementById('deviceImage');
@@ -586,52 +587,64 @@
         placeholderIdEl.innerText = `[ ${currentDeviceId || '-'} ]`;
       }
 
-      if (dev && dev.image_url) {
-        imgEl.src = dev.image_url;
-        imgEl.classList.remove('hidden');
-        placeholderEl.classList.add('hidden');
-        imgEl.onerror = () => {
+      if (imgEl && placeholderEl) {
+        if (dev && dev.image_url) {
+          imgEl.src = dev.image_url;
+          imgEl.classList.remove('hidden');
+          placeholderEl.classList.add('hidden');
+          imgEl.onerror = () => {
+            imgEl.classList.add('hidden');
+            placeholderEl.classList.remove('hidden');
+          };
+        } else {
+          imgEl.src = '';
           imgEl.classList.add('hidden');
           placeholderEl.classList.remove('hidden');
-        };
-      } else {
-        imgEl.src = '';
-        imgEl.classList.add('hidden');
-        placeholderEl.classList.remove('hidden');
+        }
       }
 
       const badgeWarn = document.getElementById('badgeWarnThresh');
+      const valWarn = document.getElementById('valWarnThresh');
+      if (badgeWarn && valWarn) {
+        if (dev && dev.warning_threshold_cm !== undefined && dev.warning_threshold_cm !== null) {
+          valWarn.innerText = dev.warning_threshold_cm;
+          badgeWarn.classList.remove('hidden');
+        } else {
+          badgeWarn.classList.add('hidden');
+        }
+      }
+
       const badgeCrit = document.getElementById('badgeCritThresh');
+      const valCrit = document.getElementById('valCritThresh');
+      if (badgeCrit && valCrit) {
+        if (dev && dev.critical_threshold_cm !== undefined && dev.critical_threshold_cm !== null) {
+          valCrit.innerText = dev.critical_threshold_cm;
+          badgeCrit.classList.remove('hidden');
+        } else {
+          badgeCrit.classList.add('hidden');
+        }
+      }
+
       const badgeRoad = document.getElementById('badgeRoadThresh');
-
-      if (dev && dev.warning_threshold_cm !== undefined && dev.warning_threshold_cm !== null) {
-        document.getElementById('valWarnThresh').innerText = dev.warning_threshold_cm;
-        badgeWarn.classList.remove('hidden');
-      } else {
-        badgeWarn.classList.add('hidden');
-      }
-
-      if (dev && dev.critical_threshold_cm !== undefined && dev.critical_threshold_cm !== null) {
-        document.getElementById('valCritThresh').innerText = dev.critical_threshold_cm;
-        badgeCrit.classList.remove('hidden');
-      } else {
-        badgeCrit.classList.add('hidden');
-      }
-
-      if (dev && dev.road_level_cm !== undefined && dev.road_level_cm !== null && dev.road_level_cm !== '') {
-        document.getElementById('valRoadThresh').innerText = dev.road_level_cm;
-        badgeRoad.classList.remove('hidden');
-      } else {
-        badgeRoad.classList.add('hidden');
+      const valRoad = document.getElementById('valRoadThresh');
+      if (badgeRoad && valRoad) {
+        if (dev && dev.road_level_cm !== undefined && dev.road_level_cm !== null && dev.road_level_cm !== '') {
+          valRoad.innerText = dev.road_level_cm;
+          badgeRoad.classList.remove('hidden');
+        } else {
+          badgeRoad.classList.add('hidden');
+        }
       }
 
       const nightLegend = document.getElementById('nightLegend');
-      if (currentTimeframe === '1h' || currentTimeframe === '6h' || currentTimeframe === '24h') {
-        nightLegend.classList.remove('hidden');
-        nightLegend.classList.add('inline-flex');
-      } else {
-        nightLegend.classList.add('hidden');
-        nightLegend.classList.remove('inline-flex');
+      if (nightLegend) {
+        if (currentTimeframe === '1h' || currentTimeframe === '6h' || currentTimeframe === '24h') {
+          nightLegend.classList.remove('hidden');
+          nightLegend.classList.add('inline-flex');
+        } else {
+          nightLegend.classList.add('hidden');
+          nightLegend.classList.remove('inline-flex');
+        }
       }
     }
 
@@ -682,7 +695,8 @@
         badgeText = 'แสดงข้อมูลเฉลี่ยทุก 4 ชั่วโมง';
       }
 
-      document.getElementById('intervalBadge').innerText = `ช่วงเวลาข้อมูล: ${badgeText}`;
+      const badgeEl = document.getElementById('intervalBadge');
+      if (badgeEl) badgeEl.innerText = `ช่วงเวลาข้อมูล: ${badgeText}`;
 
       if (bucketMinutes === 0) {
         return rawLogs;
@@ -727,15 +741,11 @@
       aggregated.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
       return aggregated;
     }
-    // เพิ่มตัวแปรสำหรับคุมการยกเลิก Request เก่า
-    // เพิ่มตัวแปรสำหรับคุมการยกเลิก Request เก่า
-    let historyAbortController = null;
 
-    // 3. โหลดข้อมูลประวัติ & กราฟ
+    // 3. โหลดข้อมูลประวัติ & กราฟ (รองรับ AbortController)
     async function loadHistoryData(forceUpdate = false) {
       if (!currentDeviceId) return;
 
-      // ถ้ายิงซ้ำตอนของเก่ายังไม่เสร็จ ให้ยกเลิกคำขอเก่าทันที
       if (historyAbortController) {
         historyAbortController.abort();
       }
@@ -760,7 +770,9 @@
         renderHistoryTable(rawLogs);
 
         currentProcessedLogs = downsampleLogs(rawLogs, currentTimeframe);
-        document.getElementById('recordCount').innerText = `${currentProcessedLogs.length} จุดข้อมูล`;
+        
+        const recCount = document.getElementById('recordCount');
+        if (recCount) recCount.innerText = `${currentProcessedLogs.length} จุดข้อมูล`;
 
         renderWaterChart(currentProcessedLogs);
         
@@ -957,7 +969,7 @@
         }
       ];
 
-      // 1. เส้นระดับพื้น (แสดงเริ่มต้น)
+      // 1. เส้นระดับพื้น
       if (dev && dev.road_level_cm !== undefined && dev.road_level_cm !== null && dev.road_level_cm !== '' && logs.length > 0) {
         datasets.push({
           label: `ระดับพื้น (${dev.road_level_cm} cm)`,
@@ -973,7 +985,7 @@
         });
       }
 
-      // 2. เส้นเตือนภัย (ซ่อนเริ่มต้น)
+      // 2. เส้นเตือนภัย
       if (dev && dev.warning_threshold_cm !== undefined && dev.warning_threshold_cm !== null && logs.length > 0) {
         datasets.push({
           label: `เกณฑ์เตือนภัย (${dev.warning_threshold_cm} cm)`,
@@ -989,7 +1001,7 @@
         });
       }
 
-      // 3. เส้นวิกฤต (ซ่อนเริ่มต้น)
+      // 3. เส้นวิกฤต
       if (dev && dev.critical_threshold_cm !== undefined && dev.critical_threshold_cm !== null && logs.length > 0) {
         datasets.push({
           label: `เกณฑ์วิกฤต (${dev.critical_threshold_cm} cm)`,
@@ -1137,9 +1149,9 @@
       updateDeviceInfoUI();
       lastLatestLogId = '';
 
-      // --- เพิ่มจุดนี้: แจ้งสถานะกำลังโหลดทันที ---
-      document.getElementById('recordCount').innerText = 'กำลังโหลด...';
-      document.getElementById('intervalBadge').innerText = 'ช่วงเวลาข้อมูล: กำลังประมวลผล...';
+      // แจ้งสถานะ Loading ทันที
+      const recCount = document.getElementById('recordCount');
+      if (recCount) recCount.innerText = 'กำลังโหลด...';
 
       loadHistoryData(true);
     }
@@ -1151,9 +1163,11 @@
       updateApiGuideUI();
       lastLatestLogId = '';
 
-      // --- เพิ่มจุดนี้: แจ้งสถานะกำลังโหลดทันที ---
-      document.getElementById('recordCount').innerText = 'กำลังโหลด...';
-      document.getElementById('historyTableBody').innerHTML = '<tr><td colspan="7" class="py-8 text-center text-slate-400">กำลังโหลดประวัติข้อมูล...</td></tr>';
+      // แจ้งสถานะ Loading ทันที
+      const recCount = document.getElementById('recordCount');
+      if (recCount) recCount.innerText = 'กำลังโหลด...';
+      const tbody = document.getElementById('historyTableBody');
+      if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="py-8 text-center text-slate-400">กำลังโหลดข้อมูล...</td></tr>';
 
       loadHistoryData(true);
     });
