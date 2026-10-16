@@ -351,21 +351,26 @@ app.post('/api/telemetry', async (req, res) => {
 // ดึงข้อมูลประวัติ
 app.get('/api/telemetry/history/:deviceId', async (req, res) => {
   try {
-    const deviceId = req.params.deviceId.trim().toUpperCase();
-    const { timeframe } = req.query;
+    const devId = req.params.deviceId.trim().toUpperCase();
+    const { timeframe = '6h' } = req.query;
 
-    let timeLimit = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    if (timeframe === '1h') timeLimit = new Date(Date.now() - 60 * 60 * 1000);
-    else if (timeframe === '6h') timeLimit = new Date(Date.now() - 6 * 60 * 60 * 1000);
-    else if (timeframe === '7d') timeLimit = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    else if (timeframe === '30d') timeLimit = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const query = { device_id: devId };
+    const now = Date.now();
 
-    const history = await Telemetry.find({
-      device_id: deviceId,
-      created_at: { $gte: timeLimit }
-    }).sort({ created_at: 1 }).lean();
+    if (timeframe === '1h') query.created_at = { $gte: new Date(now - 1 * 60 * 60 * 1000) };
+    else if (timeframe === '6h') query.created_at = { $gte: new Date(now - 6 * 60 * 60 * 1000) };
+    else if (timeframe === '24h') query.created_at = { $gte: new Date(now - 24 * 60 * 60 * 1000) };
+    else if (timeframe === '7d') query.created_at = { $gte: new Date(now - 7 * 24 * 60 * 60 * 1000) };
+    else if (timeframe === '30d') query.created_at = { $gte: new Date(now - 30 * 24 * 60 * 60 * 1000) };
 
-    res.json(history);
+    // 1. ดึงเฉพาะฟิลด์ที่ต้องใช้ในหน้า history
+    // 2. ใช้ .lean() เพื่อไม่ให้ Mongoose แปลงเป็น Document Object หนักๆ
+    const logs = await Telemetry.find(query)
+      .select('created_at water_depth_cm distance_cm battery_percent battery_voltage signal hops_path packet_id')
+      .sort({ created_at: 1 })
+      .lean();
+
+    res.json(logs);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

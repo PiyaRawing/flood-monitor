@@ -446,7 +446,7 @@
   <nav class="fixed bottom-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-md border-t border-slate-200/90 px-4 md:px-8 flex items-center justify-around z-40 shadow-lg">
     <a href="/index.html" class="flex items-center gap-2 py-2 px-5 md:px-6 rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-semibold text-xs md:text-sm transition duration-150">
       <i data-lucide="layout-dashboard" class="w-4 h-4 md:w-5 md:h-5"></i>
-      <span>ภาพรวมระบบ</span>
+      <span>แผนที่ภาพรวม</span>
     </a>
 
     <a href="/history.html" class="flex items-center gap-2 py-2 px-5 md:px-6 rounded-full bg-brand-50 text-brand-600 border border-brand-200/80 font-bold text-xs md:text-sm transition duration-150 shadow-sm">
@@ -727,12 +727,24 @@
       aggregated.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
       return aggregated;
     }
+    // เพิ่มตัวแปรสำหรับคุมการยกเลิก Request เก่า
+    // เพิ่มตัวแปรสำหรับคุมการยกเลิก Request เก่า
+    let historyAbortController = null;
 
     // 3. โหลดข้อมูลประวัติ & กราฟ
     async function loadHistoryData(forceUpdate = false) {
       if (!currentDeviceId) return;
+
+      // ถ้ายิงซ้ำตอนของเก่ายังไม่เสร็จ ให้ยกเลิกคำขอเก่าทันที
+      if (historyAbortController) {
+        historyAbortController.abort();
+      }
+      historyAbortController = new AbortController();
+
       try {
-        const res = await fetch(`/api/telemetry/history/${currentDeviceId}?timeframe=${currentTimeframe}`);
+        const res = await fetch(`/api/telemetry/history/${currentDeviceId}?timeframe=${currentTimeframe}`, {
+          signal: historyAbortController.signal
+        });
         const rawLogs = await res.json();
 
         const latest = rawLogs && rawLogs.length > 0 ? rawLogs[rawLogs.length - 1] : null;
@@ -756,7 +768,9 @@
           renderBatteryChart(currentProcessedLogs);
         }
       } catch (err) {
-        console.error(err);
+        if (err.name !== 'AbortError') {
+          console.error(err);
+        }
       }
     }
 
@@ -1122,6 +1136,11 @@
       });
       updateDeviceInfoUI();
       lastLatestLogId = '';
+
+      // --- เพิ่มจุดนี้: แจ้งสถานะกำลังโหลดทันที ---
+      document.getElementById('recordCount').innerText = 'กำลังโหลด...';
+      document.getElementById('intervalBadge').innerText = 'ช่วงเวลาข้อมูล: กำลังประมวลผล...';
+
       loadHistoryData(true);
     }
 
@@ -1131,6 +1150,11 @@
       updateDeviceInfoUI();
       updateApiGuideUI();
       lastLatestLogId = '';
+
+      // --- เพิ่มจุดนี้: แจ้งสถานะกำลังโหลดทันที ---
+      document.getElementById('recordCount').innerText = 'กำลังโหลด...';
+      document.getElementById('historyTableBody').innerHTML = '<tr><td colspan="7" class="py-8 text-center text-slate-400">กำลังโหลดประวัติข้อมูล...</td></tr>';
+
       loadHistoryData(true);
     });
 
